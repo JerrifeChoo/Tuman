@@ -1,8 +1,25 @@
 <h6>$${\color{red}提示：这个仓库可能会做一写乱七八糟的东西}$$</h6>
+
 <h1>基于Dots/ECS的Timer</h1>包含支持Burst的主系统和销毁回调的托管系统。
 <h2>TimerSystem</h2>计时器主系统，包含三种执行方式主线程、单线程、多线程并发，根据工作线程数、当前实体数、Chunk数实时调整。
 <h2>HandleSystem</h2>将计时器回调、销毁等设计托管数据内容的单独放在这个系统。
-<h2>TimerBridge</h2>做为Mono与计时器系统交互的桥梁，包含创建、销毁、暂停、继续等接口
+<h2>TimerBridge</h2>做为Mono与计时器系统交互的桥梁
+<h4>添加计时器</h4>
+<h4>$${\color{blue}TimerBridge.Add(float \space interval,HandleSystem.CallbackHandler \space onCallback,HandleSystem.CallbackHandler \space onDestroy,}$$</h4>
+<h4>$${\color{blue}\space \space int \space repeatCount=1)}$$</h4>
+interval:间隔（0表示延迟一帧），onCallback：计时器回调函数，onDestroy：销毁回调函数，repeatCount：重复次数（-1表示无线循环）
+<h4>移除计时器</h4>
+<h4>$${\color{blue}TimerBridge.Remove(Entity entity)}$$ 移除单个</h4>
+<h4>$${\color{blue}TimerBridge.RemoveAll()}$$ 移除所有</h4>
+<h4>暂停计时器</h4>
+<h4>$${\color{blue}TimerBridge.Pause(Entity entity, bool ignoreRestituion = false)}$$ 暂停单个，ignoreRestituion表示是否启用暂停补偿，会记录暂停时的启动时间</h4>
+<h4>$${\color{blue}TimerBridge.PauseAll(bool ignoreRestituion = false)}$$ 暂停所有</h4>
+<h4>恢复计时器</h4>
+<h4>$${\color{blue}TimerBridge.Resume(Entity entity, bool ignoreRestituion = false)}$$ 恢复单个，ignoreRestituion表示是否启用暂停补偿，会计算暂停补偿</h4>
+<h4>$${\color{blue}TimerBridge.ResumeAll(bool ignoreRestituion = false)}$$ 恢复所有</h4>
+<h4>启用/禁用系统</h4>
+<h4>$${\color{blue}TimerBridge.SetSystemEnabled(bool enabled)}$$ 禁用会停止计时，重新启用不会计算暂停补偿</h4>
+<h4>$${\color{blue}TimerBridge.IsSystemEnabled()}$$返回系统状态</h4>
 <h3>效果</h3>
 
 
