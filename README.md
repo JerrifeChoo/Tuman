@@ -7,7 +7,7 @@
 <h4>添加计时器</h4>
 <h4>$${\color{blue}TimerBridge.Add(float \space interval,HandleSystem.CallbackHandler \space onCallback,HandleSystem.CallbackHandler \space onDestroy,}$$</h4>
 <h4>$${\color{blue}\space \space int \space repeatCount=1)}$$</h4>
-interval:间隔（0表示延迟一帧），onCallback：计时器回调函数，onDestroy：销毁回调函数，repeatCount：重复次数（-1表示无线循环）
+interval:间隔（0表示延迟一帧），onCallback：计时器回调函数，onDestroy：销毁回调函数，repeatCount：重复次数（-1表示无限循环）
 <h4>移除计时器</h4>
 <h4>$${\color{blue}TimerBridge.Remove(Entity entity)}$$ 移除单个</h4>
 <h4>$${\color{blue}TimerBridge.RemoveAll()}$$ 移除所有</h4>
