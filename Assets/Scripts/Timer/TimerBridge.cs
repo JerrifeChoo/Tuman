@@ -1,3 +1,4 @@
+using System.Linq;
 using TT.Timer;
 using Unity.Collections;
 using Unity.Entities;
@@ -68,44 +69,143 @@ public class TimerBridge : MonoBehaviour
     public void Remove(Entity entity)
     {
         if (!IsValid(entity)) return;
-        var ecb = ecbSystem.CreateCommandBuffer(world.Unmanaged);
         var timer = entityManager.GetComponentData<Timer>(entity);
         if (timer.Flag == Flag.Expired)
             return;
+        var ecb = ecbSystem.CreateCommandBuffer(world.Unmanaged);
         timer.Flag = Flag.Expired;
         ecb.SetComponent(entity, timer);
         ecb.SetComponentEnabled<DestroyTag>(entity, true);
     }
 
-    //mono update在BeginSimulationEntityCommandBufferSystem之前，必须通过命令行队列更新，防止被被上一帧系统Update数据覆盖
-    public void Pause(Entity entity)
+    public void RemoveAll()
     {
-        if (!IsValid(entity)) return;
-        var timer = entityManager.GetComponentData<Timer>(entity);
-        if (timer.Flag != Flag.Expired)
+        EntityQuery query = entityManager.CreateEntityQuery(typeof(Timer));
+        NativeArray<Entity> entities = query.ToEntityArray(Allocator.Temp);
+        var count = entities.Count();
+        if (count > 0)
         {
-            timer.PauseStamp = Time.realtimeSinceStartup;
-            timer.Flag = Flag.Paused;
+            var ecb = ecbSystem.CreateCommandBuffer(world.Unmanaged);
+            for (int i = 0; i < count; i++)
+            {
+                var timer = entityManager.GetComponentData<Timer>(entities[i]);
+                if (timer.Flag == Flag.Expired)
+                    continue;
+                timer.Flag = Flag.Expired;
+                ecb.SetComponent(entities[i], timer);
+                ecb.SetComponentEnabled<DestroyTag>(entities[i], true);
+            }
         }
-        var ecb = ecbSystem.CreateCommandBuffer(world.Unmanaged);
-        ecb.SetComponent(entity, timer);
-        ecb.SetComponentEnabled<CallbackTag>(entity, false);
+        query.Dispose();
+        entities.Dispose();
     }
 
     //mono update在BeginSimulationEntityCommandBufferSystem之前，必须通过命令行队列更新，防止被被上一帧系统Update数据覆盖
-    public void Resume(Entity entity)
+    public void Pause(Entity entity, bool ignoreRestituion = false)
     {
         if (!IsValid(entity)) return;
         var timer = entityManager.GetComponentData<Timer>(entity);
-        var ecb = ecbSystem.CreateCommandBuffer(world.Unmanaged);
+        if (timer.Flag == Flag.None )
+        {
+            if(!ignoreRestituion)
+                timer.PauseStamp = Time.realtimeSinceStartup;
+            timer.Flag = Flag.Paused;
+            var ecb = ecbSystem.CreateCommandBuffer(world.Unmanaged);
+            ecb.SetComponent(entity, timer);
+            ecb.SetComponentEnabled<CallbackTag>(entity, false);
+        }
+    }
+
+    public void PauseAll(bool ignoreRestituion = false)
+    {
+        EntityQuery query = entityManager.CreateEntityQuery(typeof(Timer));
+        NativeArray<Entity> entities = query.ToEntityArray(Allocator.Temp);
+        var count = entities.Count();
+        if (count > 0)
+        {
+            var ecb = ecbSystem.CreateCommandBuffer(world.Unmanaged);
+            for (int i = 0; i < count; i++)
+            {
+                var timer = entityManager.GetComponentData<Timer>(entities[i]);
+                if (timer.Flag != Flag.None)
+                    continue;
+                if (!ignoreRestituion)
+                    timer.PauseStamp = Time.realtimeSinceStartup;
+                timer.Flag = Flag.Paused;
+                ecb.SetComponent(entities[i], timer);
+                ecb.SetComponentEnabled<CallbackTag>(entities[i], false);
+            }
+        }
+        query.Dispose();
+        entities.Dispose();
+    }
+
+    //mono update在BeginSimulationEntityCommandBufferSystem之前，必须通过命令行队列更新，防止被被上一帧系统Update数据覆盖
+    public void Resume(Entity entity, bool ignoreRestituion = false)
+    {
+        if (!IsValid(entity)) return;
+        var timer = entityManager.GetComponentData<Timer>(entity);
         if (timer.Flag == Flag.Paused)
         {
-            var stamp = Time.realtimeSinceStartup;
-            //补偿
-            timer.Restitution += stamp - timer.PauseStamp;
+            var ecb = ecbSystem.CreateCommandBuffer(world.Unmanaged);
+            if (!ignoreRestituion)
+            {
+                var stamp = Time.realtimeSinceStartup;
+                //补偿
+                timer.Restitution += stamp - timer.PauseStamp;
+            }
             timer.Flag = Flag.None;
+            ecb.SetComponent(entity, timer);
         }
-        ecb.SetComponent(entity, timer);
+    }
+
+    public void ResumeAll(bool ignoreRestituion = false)
+    {
+        EntityQuery query = entityManager.CreateEntityQuery(typeof(Timer));
+        NativeArray<Entity> entities = query.ToEntityArray(Allocator.Temp);
+        var count = entities.Count();
+        if (count > 0)
+        {
+            var ecb = ecbSystem.CreateCommandBuffer(world.Unmanaged);
+            for (int i = 0; i < count; i++)
+            {
+                var timer = entityManager.GetComponentData<Timer>(entities[i]);
+                if (timer.Flag != Flag.Paused)
+                    continue;
+                if (!ignoreRestituion)
+                {
+                    var stamp = Time.realtimeSinceStartup;
+                    //补偿
+                    timer.Restitution += stamp - timer.PauseStamp;
+                }
+                timer.Flag = Flag.None;
+                ecb.SetComponent(entities[i], timer);
+            }
+        }
+        query.Dispose();
+        entities.Dispose();
+    }
+
+    //直接禁用会停止计时，重新启用不会计算暂停补偿
+    public void SetSystemEnabled(bool enabled)
+    {
+        var sys = world.GetExistingSystem<TimerSystem>();
+        ref var state = ref world.Unmanaged.ResolveSystemStateRef(sys);
+        state.Enabled = enabled;
+        sys = world.GetExistingSystem<HandleSystem>();
+        state = ref world.Unmanaged.ResolveSystemStateRef(sys);
+        state.Enabled = enabled;
+    }
+
+    public bool IsSystemEnabled()
+    {
+        var sys = world.GetExistingSystem<TimerSystem>();
+        var state = world.Unmanaged.ResolveSystemStateRef(sys);
+        if (!state.Enabled)
+            return false;
+        sys = world.GetExistingSystem<HandleSystem>();
+        state = world.Unmanaged.ResolveSystemStateRef(sys);
+        return state.Enabled;
     }
 
     public bool IsPaused(Entity entity)
