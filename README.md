@@ -1,18 +1,19 @@
 <h6>$${\color{red}提示：这个仓库可能会做一写乱七八糟的东西}$$</h6>
 
 <h1>基于Dots/ECS的Timer</h1>
-<h4>基于Dots/ECS实现的计时器系统</h4>
-<h4>主线程、单线程、多线程并行3种模式动态调整调度</h4>
-<h4>主系统支持BurstCompile，回调系统支持托管类型</h4>
-<h4>无SubScene子场景，动态创建EntityPrefab用于计时器实例化</h4>
-<h4>支持Mono，支持Time.timeScale缩放，支持暂停/恢复时长补偿</h4>
+<h4>一、基于Dots/ECS实现的计时器系统。</h4>
+<h4>二、包含主线程、单线程、多线程并行3种模式，运行时动态调度。</h4>
+<h4>三、主系统支持BurstCompile，回调系统支持托管类型。</h4>
+<h4>四、无SubScene子场景，动态创建EntityPrefab用于计时器实例化。</h4>
+<h4>五、支持Mono，支持Time.timeScale缩放，支持暂停/恢复时长补偿。</h4>
+<h4>六、基于Time.realtimeSinceStartup计算，比Time.deltaTime更精准，减少多次累加导致的精度丢失。</h4>
 <h2>TimerSystem</h2>计时器主系统，包含三种执行方式主线程、单线程、多线程并发，根据工作线程数、当前实体数、Chunk数实时调整。
 <h2>HandleSystem</h2>包含计时器回调、销毁回调涉及托管数据内容。
-<h2>TimerBridge</h2>Mono的交互桥梁
+<h2>TimerBridge</h2>与Mono的交互桥梁。
 <h4>添加计时器</h4>
 <h4>$${\color{blue}TimerBridge.Add(float \space interval,HandleSystem.CallbackHandler \space onCallback,HandleSystem.CallbackHandler}$$</h4>
 <h4>$${\color{blue}\space \space  \space onDestroy,int \space repeatCount=1, bool \space ignoreScale = false, bool \space ignoreGap = false)}$$</h4>
-interval:间隔（0表示延迟一帧），onCallback：计时器回调函数，onDestroy：销毁回调函数，repeatCount：重复次数（-1表示无限循环）,ignoreScale：忽略Tiem.timeScale,ignoreGap：忽略暂停到恢复中间的时间损耗
+interval:间隔（0表示延迟一帧），onCallback：计时器回调函数，onDestroy：销毁回调函数，repeatCount：重复次数（-1表示无限循环），ignoreScale：忽略Tiem.timeScale时间缩放，ignoreGap：忽略暂停到恢复中间的时间损耗
 <h4>移除计时器</h4>
 <h4>$${\color{blue}TimerBridge.Remove(Entity \space entity)}$$ 移除单个</h4>
 <h4>$${\color{blue}TimerBridge.RemoveAll()}$$ 移除所有</h4>
