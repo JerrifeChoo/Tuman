@@ -5,7 +5,7 @@
 <h4>主线程、单线程、多线程并行3种模式动态调整调度</h4>
 <h4>主系统支持BurstCompile，回调系统支持托管类型</h4>
 <h4>无SubScene子场景，动态创建EntityPrefab用于计时器实例化</h4>
-<h4>支持Mono</h4>
+<h4>支持Mono，支持Time.timeScale缩放，支持暂停/恢复时长补偿</h4>
 <h2>TimerSystem</h2>计时器主系统，包含三种执行方式主线程、单线程、多线程并发，根据工作线程数、当前实体数、Chunk数实时调整。
 <h2>HandleSystem</h2>包含计时器回调、销毁回调涉及托管数据内容。
 <h2>TimerBridge</h2>Mono的交互桥梁
