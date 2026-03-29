@@ -2,7 +2,7 @@
 
 <h1>基于Dots/ECS的Timer</h1>包含支持Burst的主系统和销毁回调的托管系统。
 <h2>TimerSystem</h2>计时器主系统，包含三种执行方式主线程、单线程、多线程并发，根据工作线程数、当前实体数、Chunk数实时调整。
-<h2>HandleSystem</h2>将计时器回调、销毁等设计托管数据内容的单独放在这个系统。
+<h2>HandleSystem</h2>将计时器回调、销毁等涉及托管数据内容的单独放在这个系统。
 <h2>TimerBridge</h2>做为Mono与计时器系统交互的桥梁
 <h4>添加计时器</h4>
 <h4>$${\color{blue}TimerBridge.Add(float \space interval,HandleSystem.CallbackHandler \space onCallback,HandleSystem.CallbackHandler}$$</h4>
