@@ -1,9 +1,14 @@
 <h6>$${\color{red}提示：这个仓库可能会做一写乱七八糟的东西}$$</h6>
 
-<h1>基于Dots/ECS的Timer</h1>包含支持Burst的主系统和销毁回调的托管系统。
+<h1>基于Dots/ECS的Timer</h1>
+<h4>基于Dots/ECS实现的计时器系统</h4>
+<h4>主线程、单线程、多线程并行3种模式动态调整调度</h4>
+<h4>主系统支持BurstCompile，回调系统支持托管类型</h4>
+<h4>无SubScene子场景，动态创建EntityPrefab用于计时器实例化</h4>
+<h4>支持Mono</h4>
 <h2>TimerSystem</h2>计时器主系统，包含三种执行方式主线程、单线程、多线程并发，根据工作线程数、当前实体数、Chunk数实时调整。
-<h2>HandleSystem</h2>将计时器回调、销毁等涉及托管数据内容的单独放在这个系统。
-<h2>TimerBridge</h2>做为Mono与计时器系统交互的桥梁
+<h2>HandleSystem</h2>包含计时器回调、销毁回调涉及托管数据内容。
+<h2>TimerBridge</h2>Mono的交互桥梁
 <h4>添加计时器</h4>
 <h4>$${\color{blue}TimerBridge.Add(float \space interval,HandleSystem.CallbackHandler \space onCallback,HandleSystem.CallbackHandler}$$</h4>
 <h4>$${\color{blue}\space \space  \space onDestroy,int \space repeatCount=1, bool \space ignoreScale = false, bool \space ignoreGap = false)}$$</h4>
