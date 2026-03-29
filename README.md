@@ -9,18 +9,23 @@
 <h4>$${\color{blue}\space \space  \space onDestroy,int \space repeatCount=1, bool \space ignoreScale = false, bool \space ignoreGap = false)}$$</h4>
 interval:间隔（0表示延迟一帧），onCallback：计时器回调函数，onDestroy：销毁回调函数，repeatCount：重复次数（-1表示无限循环）,ignoreScale：忽略Tiem.timeScale,ignoreGap：忽略暂停到恢复中间的时间损耗
 <h4>移除计时器</h4>
-<h4>$${\color{blue}TimerBridge.Remove(Entity entity)}$$ 移除单个</h4>
+<h4>$${\color{blue}TimerBridge.Remove(Entity \space entity)}$$ 移除单个</h4>
 <h4>$${\color{blue}TimerBridge.RemoveAll()}$$ 移除所有</h4>
 <h4>暂停计时器</h4>
-<h4>$${\color{blue}TimerBridge.Pause(Entity entity}$$ 暂停单个</h4>
+<h4>$${\color{blue}TimerBridge.Pause(Entity \space entity}$$ 暂停单个</h4>
 <h4>$${\color{blue}TimerBridge.PauseAll()}$$ 暂停所有</h4>
 <h4>恢复计时器</h4>
-<h4>$${\color{blue}TimerBridge.Resume(Entity entity)}$$ 恢复单个</h4>
+<h4>$${\color{blue}TimerBridge.Resume(Entity \space entity)}$$ 恢复单个</h4>
 <h4>$${\color{blue}TimerBridge.ResumeAll()}$$ 恢复所有</h4>
 <h4>启用/禁用系统</h4>
-<h4>$${\color{blue}TimerBridge.SetSystemEnabled(bool enabled)}$$ 禁用会停止计时，重新启用不会计算暂停补偿</h4>
+<h4>$${\color{blue}TimerBridge.SetSystemEnabled(bool \space enabled)}$$ 禁用会停止计时，重新启用不会计算暂停补偿</h4>
 <h4>$${\color{blue}TimerBridge.IsSystemEnabled()}$$返回系统状态</h4>
 <h3>效果</h3>
+<h4>支持Time.timeScale</h4>
+
+
+https://github.com/user-attachments/assets/fe016a09-b106-4807-8e13-d06cbe140e60
+
 
 
 https://github.com/user-attachments/assets/c84fb378-8b4c-4633-a6d7-f09efc9cb20d
