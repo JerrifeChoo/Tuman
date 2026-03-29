@@ -8,6 +8,7 @@ public class TimerBridge : MonoBehaviour
 {
     private static TimerBridge instance;
     public BeginSimulationEntityCommandBufferSystem.Singleton ecbSystem;
+    private Entity Prefab;
     private World world;
     private EntityManager entityManager;
 
@@ -24,8 +25,6 @@ public class TimerBridge : MonoBehaviour
             return instance;
         }
     }
-
-    private Entity Prefab;
 
     private void Awake()
     {
@@ -48,15 +47,25 @@ public class TimerBridge : MonoBehaviour
     }
 
     // entity是个值，不是引用，必须立马创建，不可以通过命令行，否则无法返回正确的entity
-    public Entity Add(float interval, HandleSystem.CallbackHandler onCallback, HandleSystem.CallbackHandler onDestroy, int repeatCount = 1)
+    public Entity Add(float interval, HandleSystem.CallbackHandler onCallback, HandleSystem.CallbackHandler onDestroy, int repeatCount = 1, bool ignoreScale = false, bool ignoreGap = false)
     {
 
         var entity = entityManager.Instantiate(Prefab);
+        byte flag = 0;
+        float scale = 1;
+        if (ignoreScale)
+            flag += (byte)Flag.IgnoreScale;
+        else
+            scale = Time.timeScale;
+        if (ignoreGap)
+            flag += (byte)Flag.IgnoreGap;
         entityManager.SetComponentData(entity, new Timer
         {
             BeginStamp = Time.realtimeSinceStartup,
             Interval = interval,
             RepeatCount = repeatCount,
+            Scale = scale,
+            Flag = flag,
         });
         if (onCallback != null)
             HandleSystem.CallbackHandlers[entity.Index] = onCallback;
@@ -70,12 +79,11 @@ public class TimerBridge : MonoBehaviour
     {
         if (!IsValid(entity)) return;
         var timer = entityManager.GetComponentData<Timer>(entity);
-        if (timer.Flag == Flag.Expired)
+        if ((timer.Flag & (byte)Flag.Expired) != 0)
             return;
         var ecb = ecbSystem.CreateCommandBuffer(world.Unmanaged);
-        timer.Flag = Flag.Expired;
+        timer.Flag |= (byte)Flag.Expired;
         ecb.SetComponent(entity, timer);
-        ecb.SetComponentEnabled<DestroyTag>(entity, true);
     }
 
     public void RemoveAll()
@@ -89,11 +97,10 @@ public class TimerBridge : MonoBehaviour
             for (int i = 0; i < count; i++)
             {
                 var timer = entityManager.GetComponentData<Timer>(entities[i]);
-                if (timer.Flag == Flag.Expired)
+                if ((timer.Flag & (byte)Flag.Expired) != 0)
                     continue;
-                timer.Flag = Flag.Expired;
+                timer.Flag |= (byte)Flag.Expired;
                 ecb.SetComponent(entities[i], timer);
-                ecb.SetComponentEnabled<DestroyTag>(entities[i], true);
             }
         }
         query.Dispose();
@@ -101,22 +108,19 @@ public class TimerBridge : MonoBehaviour
     }
 
     //mono update在BeginSimulationEntityCommandBufferSystem之前，必须通过命令行队列更新，防止被被上一帧系统Update数据覆盖
-    public void Pause(Entity entity, bool ignoreRestituion = false)
+    public void Pause(Entity entity)
     {
         if (!IsValid(entity)) return;
         var timer = entityManager.GetComponentData<Timer>(entity);
-        if (timer.Flag == Flag.None )
-        {
-            if(!ignoreRestituion)
-                timer.PauseStamp = Time.realtimeSinceStartup;
-            timer.Flag = Flag.Paused;
-            var ecb = ecbSystem.CreateCommandBuffer(world.Unmanaged);
-            ecb.SetComponent(entity, timer);
-            ecb.SetComponentEnabled<CallbackTag>(entity, false);
-        }
+        if ((timer.Flag & (byte)Flag.Paused) != 0)
+            return;
+        timer.Flag |= (byte)Flag.Paused;
+        var ecb = ecbSystem.CreateCommandBuffer(world.Unmanaged);
+        ecb.SetComponent(entity, timer);
+        ecb.SetComponentEnabled<CallbackTag>(entity, false);
     }
 
-    public void PauseAll(bool ignoreRestituion = false)
+    public void PauseAll()
     {
         EntityQuery query = entityManager.CreateEntityQuery(typeof(Timer));
         NativeArray<Entity> entities = query.ToEntityArray(Allocator.Temp);
@@ -127,11 +131,9 @@ public class TimerBridge : MonoBehaviour
             for (int i = 0; i < count; i++)
             {
                 var timer = entityManager.GetComponentData<Timer>(entities[i]);
-                if (timer.Flag != Flag.None)
+                if ((timer.Flag & (byte)Flag.Paused) != 0)
                     continue;
-                if (!ignoreRestituion)
-                    timer.PauseStamp = Time.realtimeSinceStartup;
-                timer.Flag = Flag.Paused;
+                timer.Flag |= (byte)Flag.Paused;
                 ecb.SetComponent(entities[i], timer);
                 ecb.SetComponentEnabled<CallbackTag>(entities[i], false);
             }
@@ -141,22 +143,15 @@ public class TimerBridge : MonoBehaviour
     }
 
     //mono update在BeginSimulationEntityCommandBufferSystem之前，必须通过命令行队列更新，防止被被上一帧系统Update数据覆盖
-    public void Resume(Entity entity, bool ignoreRestituion = false)
+    public void Resume(Entity entity)
     {
         if (!IsValid(entity)) return;
         var timer = entityManager.GetComponentData<Timer>(entity);
-        if (timer.Flag == Flag.Paused)
-        {
-            var ecb = ecbSystem.CreateCommandBuffer(world.Unmanaged);
-            if (!ignoreRestituion)
-            {
-                var stamp = Time.realtimeSinceStartup;
-                //补偿
-                timer.Restitution += stamp - timer.PauseStamp;
-            }
-            timer.Flag = Flag.None;
-            ecb.SetComponent(entity, timer);
-        }
+        if ((timer.Flag & (byte)Flag.Paused) == 0)
+            return;
+        var ecb = ecbSystem.CreateCommandBuffer(world.Unmanaged);
+        timer.Flag -= (byte)Flag.Paused;
+        ecb.SetComponent(entity, timer);
     }
 
     public void ResumeAll(bool ignoreRestituion = false)
@@ -170,15 +165,9 @@ public class TimerBridge : MonoBehaviour
             for (int i = 0; i < count; i++)
             {
                 var timer = entityManager.GetComponentData<Timer>(entities[i]);
-                if (timer.Flag != Flag.Paused)
+                if ((timer.Flag & (byte)Flag.Paused) == 0)
                     continue;
-                if (!ignoreRestituion)
-                {
-                    var stamp = Time.realtimeSinceStartup;
-                    //补偿
-                    timer.Restitution += stamp - timer.PauseStamp;
-                }
-                timer.Flag = Flag.None;
+                timer.Flag -= (byte)Flag.Paused;
                 ecb.SetComponent(entities[i], timer);
             }
         }
@@ -213,7 +202,7 @@ public class TimerBridge : MonoBehaviour
         if (!IsValid(entity))
             return true;
         var timer = entityManager.GetComponentData<Timer>(entity);
-        return timer.Flag == Flag.Paused;
+        return ((timer.Flag & (byte)Flag.Paused) != 0);
     }
 
     public bool IsValid(Entity entity)

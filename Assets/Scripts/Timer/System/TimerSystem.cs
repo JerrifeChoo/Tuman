@@ -54,6 +54,7 @@ namespace TT.Timer
         public void OnUpdate(ref SystemState state)
         {
             float time = Time.realtimeSinceStartup;
+            float timeScale = Time.timeScale;
             CalculateThreshold();
             var ecbSystem = SystemAPI.GetSingleton<BeginSimulationEntityCommandBufferSystem.Singleton>();
             int entityCount = TimerQuery.CalculateEntityCount();
@@ -68,6 +69,7 @@ namespace TT.Timer
                     var job = new TimerJobChunkParallel
                     {
                         TimeStamp = time,
+                        TimeScale = timeScale,
                         Paralleled = Paralleled,
                         ComponentHandle = componentHandle,
                         EntityHandle = entityTypeHandle,
@@ -80,6 +82,7 @@ namespace TT.Timer
                     var job = new TimerJobChunk
                     {
                         TimeStamp = time,
+                        TimeScale = timeScale,
                         Paralleled = Paralleled,
                         ComponentHandle = componentHandle,
                         EntityHandle = entityTypeHandle,
@@ -92,7 +95,7 @@ namespace TT.Timer
             {
                 var entities = TimerQuery.ToEntityArray(state.WorldUpdateAllocator);
                 var timers = TimerQuery.ToComponentDataArray<Timer>(state.WorldUpdateAllocator);
-                TimerProcessor.Process(ref entities, ref timers, time, in command);
+                TimerProcessor.Process(ref entities, ref timers, time, timeScale, in command);
             }
             state.Dependency.Complete();
         }

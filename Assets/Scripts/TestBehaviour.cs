@@ -6,20 +6,24 @@ using UnityEngine.UI;
 
 public class TestBehaviour : MonoBehaviour
 {
-    // Start is called before the first frame update
     public Button btn;
     private Entity timer;
     private List<Entity> timers = new List<Entity>();
     public TextMeshProUGUI text;
     public TextMeshProUGUI currentText;
+    public TextMeshProUGUI scaleText;
+    public Slider slider;
 
     private void Start()
     {
+        if(slider!=null)
+            Time.timeScale = slider.value;
         if (text != null)
         {
             var time = System.DateTime.Now;
             text.text = $"{time.Hour:D2}:{time.Minute:D2}:{time.Second:D2}:{time.Ticks % 1000:D3}";
-            timer = TimerBridge.Instance.Add(Random.Range(0f, 1f), (entity) =>
+            var random = Random.Range(0f, 3f);
+            timer = TimerBridge.Instance.Add(random, (entity) =>
             {
                 var time = System.DateTime.Now;
                 text.text = $"{time.Hour:D2}:{time.Minute:D2}:{time.Second:D2}:{time.Ticks % 1000:D3}";
@@ -48,11 +52,14 @@ public class TestBehaviour : MonoBehaviour
         for (int i = 0; i < 1000; i++)
         {
             var random = Random.Range(0f, 3f);
-            timers.Add(TimerBridge.Instance.Add(random, (entity)=>{
-            }, (entity)=>{
+            var randomRepeat = Random.Range(-1, 100);
+            timers.Add(TimerBridge.Instance.Add(random, (entity) =>
+            {
+            }, (entity) =>
+            {
                 timers.Remove(entity);
                 currentText.text = $"Current\n{timers.Count}";
-            }, Random.Range(-1, 100)));
+            }, randomRepeat));
         }
         currentText.text = $"Current\n{timers.Count}";
     }
@@ -63,5 +70,11 @@ public class TestBehaviour : MonoBehaviour
         {
             TimerBridge.Instance.Remove(timers[i]);
         }
+    }
+
+    public void OnScaleChanged()
+    {
+        scaleText.text = System.String.Format("Scale: {0:F2}", slider.value);
+        Time.timeScale = slider.value;
     }
 }

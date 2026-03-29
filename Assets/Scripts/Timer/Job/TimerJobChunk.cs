@@ -13,13 +13,14 @@ namespace TT.Timer
         public EntityTypeHandle EntityHandle;
         public EntityCommandBuffer ECB;
         public float TimeStamp;
+        public float TimeScale;
         public bool Paralleled;
 
         public void Execute(in ArchetypeChunk chunk, int unfilteredChunkIndex, bool useEnabledMask, in v128 chunkEnabledMask)
         {
             var timers = chunk.GetNativeArray(ref ComponentHandle);
             var entities = chunk.GetNativeArray(EntityHandle);
-            TimerProcessor.Process(ref entities, ref timers, TimeStamp, in ECB, unfilteredChunkIndex);
+            TimerProcessor.Process(ref entities, ref timers, TimeStamp, TimeScale, in ECB, unfilteredChunkIndex);
         }
     }
 
@@ -32,13 +33,14 @@ namespace TT.Timer
         public EntityTypeHandle EntityHandle;
         public EntityCommandBuffer.ParallelWriter ECB;
         public float TimeStamp;
+        public float TimeScale;
         public bool Paralleled;
 
         public void Execute(in ArchetypeChunk chunk, int unfilteredChunkIndex, bool useEnabledMask, in v128 chunkEnabledMask)
         {
             var timers = chunk.GetNativeArray(ref ComponentHandle);
             var entities = chunk.GetNativeArray(EntityHandle);
-            TimerProcessor.Process(ref entities, ref timers, TimeStamp, default(EntityCommandBuffer), unfilteredChunkIndex, true, ECB);
+            TimerProcessor.Process(ref entities, ref timers, TimeStamp, TimeScale, default(EntityCommandBuffer), unfilteredChunkIndex, true, ECB);
         }
     }
 }
