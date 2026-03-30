@@ -3,6 +3,7 @@ using TMPro;
 using Unity.Entities;
 using UnityEngine;
 using UnityEngine.UI;
+using TT.Timer;
 
 public class TimerTestBehaviour : MonoBehaviour
 {
