@@ -631,7 +631,7 @@ namespace XLua
                 RealStatePtr L = luaEnv.rawL;
                 int errFunc = LuaAPI.pcall_prepare(L, errorFuncRef, luaReference);
                 ObjectTranslator translator = luaEnv.translator;
-                translator.Push(L, p0);
+                translator.PushUnityEntitiesEntity(L, p0);
                 
                 PCall(L, 1, 0, errFunc);
                 
@@ -828,9 +828,9 @@ namespace XLua
 			    return new System.Func<UnityEngine.UI.ILayoutElement, float>(__Gen_Delegate_Imp26);
 			}
 		
-		    if (type == typeof(TT.Timer.HandleSystem.CallbackHandler))
+		    if (type == typeof(System.Action<Unity.Entities.Entity>))
 			{
-			    return new TT.Timer.HandleSystem.CallbackHandler(__Gen_Delegate_Imp27);
+			    return new System.Action<Unity.Entities.Entity>(__Gen_Delegate_Imp27);
 			}
 		
 		    return null;

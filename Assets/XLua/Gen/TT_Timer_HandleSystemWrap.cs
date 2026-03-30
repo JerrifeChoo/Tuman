@@ -109,7 +109,7 @@ namespace XLua.CSObjectWrap
         {
 		    try {
                 ObjectTranslator translator = ObjectTranslatorPool.Instance.Find(L);
-			    TT.Timer.HandleSystem.DestroyHandlers = (System.Collections.Generic.Dictionary<int, TT.Timer.HandleSystem.CallbackHandler>)translator.GetObject(L, 1, typeof(System.Collections.Generic.Dictionary<int, TT.Timer.HandleSystem.CallbackHandler>));
+			    TT.Timer.HandleSystem.DestroyHandlers = (System.Collections.Generic.Dictionary<int, System.Action<Unity.Entities.Entity>>)translator.GetObject(L, 1, typeof(System.Collections.Generic.Dictionary<int, System.Action<Unity.Entities.Entity>>));
             
             } catch(System.Exception gen_e) {
                 return LuaAPI.luaL_error(L, "c# exception:" + gen_e);
@@ -122,7 +122,7 @@ namespace XLua.CSObjectWrap
         {
 		    try {
                 ObjectTranslator translator = ObjectTranslatorPool.Instance.Find(L);
-			    TT.Timer.HandleSystem.CallbackHandlers = (System.Collections.Generic.Dictionary<int, TT.Timer.HandleSystem.CallbackHandler>)translator.GetObject(L, 1, typeof(System.Collections.Generic.Dictionary<int, TT.Timer.HandleSystem.CallbackHandler>));
+			    TT.Timer.HandleSystem.CallbackHandlers = (System.Collections.Generic.Dictionary<int, System.Action<Unity.Entities.Entity>>)translator.GetObject(L, 1, typeof(System.Collections.Generic.Dictionary<int, System.Action<Unity.Entities.Entity>>));
             
             } catch(System.Exception gen_e) {
                 return LuaAPI.luaL_error(L, "c# exception:" + gen_e);

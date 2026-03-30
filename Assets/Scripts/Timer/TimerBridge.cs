@@ -1,18 +1,21 @@
+using System;
 using System.Linq;
 using Unity.Collections;
 using Unity.Entities;
 using UnityEngine;
+using XLua;
 
 namespace TT.Timer
 {
     public class TimerBridge : MonoBehaviour
     {
         private static TimerBridge instance;
-        public BeginSimulationEntityCommandBufferSystem.Singleton ecbSystem;
+        private BeginSimulationEntityCommandBufferSystem.Singleton ecbSystem;
         private Entity Prefab;
         private World world;
         private EntityManager entityManager;
 
+        [LuaCallCSharp]
         public static TimerBridge Instance
         {
             get
@@ -48,7 +51,8 @@ namespace TT.Timer
         }
 
         // entity是个值，不是引用，必须立马创建，不可以通过命令行，否则无法返回正确的entity
-        public Entity Add(float interval, HandleSystem.CallbackHandler onCallback, HandleSystem.CallbackHandler onDestroy, int repeatCount = 1, bool ignoreScale = false, bool ignoreGap = false)
+        [LuaCallCSharp]
+        public Entity Add(float interval, Action<Entity> onCallback, Action<Entity> onDestroy, int repeatCount = 1, bool ignoreScale = false, bool ignoreGap = false)
         {
 
             var entity = entityManager.Instantiate(Prefab);
@@ -76,6 +80,7 @@ namespace TT.Timer
         }
 
         //mono update在BeginSimulationEntityCommandBufferSystem之前，必须通过命令行队列更新，防止被被上一帧系统Update数据覆盖
+        [LuaCallCSharp]
         public void Remove(Entity entity)
         {
             if (!IsValid(entity)) return;
@@ -87,6 +92,7 @@ namespace TT.Timer
             ecb.SetComponent(entity, timer);
         }
 
+        [LuaCallCSharp]
         public void RemoveAll()
         {
             EntityQuery query = entityManager.CreateEntityQuery(typeof(Timer));
@@ -108,6 +114,7 @@ namespace TT.Timer
             entities.Dispose();
         }
 
+        [LuaCallCSharp]
         //mono update在BeginSimulationEntityCommandBufferSystem之前，必须通过命令行队列更新，防止被被上一帧系统Update数据覆盖
         public void Pause(Entity entity)
         {
@@ -121,6 +128,7 @@ namespace TT.Timer
             ecb.SetComponentEnabled<CallbackTag>(entity, false);
         }
 
+        [LuaCallCSharp]
         public void PauseAll()
         {
             EntityQuery query = entityManager.CreateEntityQuery(typeof(Timer));
@@ -143,6 +151,7 @@ namespace TT.Timer
             entities.Dispose();
         }
 
+        [LuaCallCSharp]
         //mono update在BeginSimulationEntityCommandBufferSystem之前，必须通过命令行队列更新，防止被被上一帧系统Update数据覆盖
         public void Resume(Entity entity)
         {
@@ -155,6 +164,7 @@ namespace TT.Timer
             ecb.SetComponent(entity, timer);
         }
 
+        [LuaCallCSharp]
         public void ResumeAll(bool ignoreRestituion = false)
         {
             EntityQuery query = entityManager.CreateEntityQuery(typeof(Timer));
@@ -176,6 +186,7 @@ namespace TT.Timer
             entities.Dispose();
         }
 
+        [LuaCallCSharp]
         //直接禁用会停止计时，重新启用不会计算暂停补偿
         public void SetSystemEnabled(bool enabled)
         {
@@ -187,6 +198,7 @@ namespace TT.Timer
             state.Enabled = enabled;
         }
 
+        [LuaCallCSharp]
         public bool IsSystemEnabled()
         {
             var sys = world.GetExistingSystem<TimerSystem>();
@@ -198,6 +210,7 @@ namespace TT.Timer
             return state.Enabled;
         }
 
+        [LuaCallCSharp]
         public bool IsPaused(Entity entity)
         {
             if (!IsValid(entity))
@@ -206,6 +219,7 @@ namespace TT.Timer
             return ((timer.Flag & (byte)Flag.Paused) != 0);
         }
 
+        [LuaCallCSharp]
         public bool IsValid(Entity entity)
         {
             if (entity == Entity.Null)

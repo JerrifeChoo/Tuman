@@ -34,6 +34,7 @@ namespace XLua
 				translator.RegisterPushAndGetAndUpdate<UnityEngine.Ray>(translator.PushUnityEngineRay, translator.Get, translator.UpdateUnityEngineRay);
 				translator.RegisterPushAndGetAndUpdate<UnityEngine.Bounds>(translator.PushUnityEngineBounds, translator.Get, translator.UpdateUnityEngineBounds);
 				translator.RegisterPushAndGetAndUpdate<UnityEngine.Ray2D>(translator.PushUnityEngineRay2D, translator.Get, translator.UpdateUnityEngineRay2D);
+				translator.RegisterPushAndGetAndUpdate<Unity.Entities.Entity>(translator.PushUnityEntitiesEntity, translator.Get, translator.UpdateUnityEntitiesEntity);
 			
 			}
         }
@@ -570,6 +571,72 @@ namespace XLua
             }
         }
         
+        int UnityEntitiesEntity_TypeID = -1;
+        public void PushUnityEntitiesEntity(RealStatePtr L, Unity.Entities.Entity val)
+        {
+            if (UnityEntitiesEntity_TypeID == -1)
+            {
+			    bool is_first;
+                UnityEntitiesEntity_TypeID = getTypeId(L, typeof(Unity.Entities.Entity), out is_first);
+				
+            }
+			
+            IntPtr buff = LuaAPI.xlua_pushstruct(L, 8, UnityEntitiesEntity_TypeID);
+            if (!CopyByValue.Pack(buff, 0, val))
+            {
+                throw new Exception("pack fail fail for Unity.Entities.Entity ,value="+val);
+            }
+			
+        }
+		
+        public void Get(RealStatePtr L, int index, out Unity.Entities.Entity val)
+        {
+		    LuaTypes type = LuaAPI.lua_type(L, index);
+            if (type == LuaTypes.LUA_TUSERDATA )
+            {
+			    if (LuaAPI.xlua_gettypeid(L, index) != UnityEntitiesEntity_TypeID)
+				{
+				    throw new Exception("invalid userdata for Unity.Entities.Entity");
+				}
+				
+                IntPtr buff = LuaAPI.lua_touserdata(L, index);if (!CopyByValue.UnPack(buff, 0, out val))
+                {
+                    throw new Exception("unpack fail for Unity.Entities.Entity");
+                }
+            }
+			else if (type ==LuaTypes.LUA_TTABLE)
+			{
+			    CopyByValue.UnPack(this, L, index, out val);
+			}
+            else
+            {
+                val = (Unity.Entities.Entity)objectCasters.GetCaster(typeof(Unity.Entities.Entity))(L, index, null);
+            }
+        }
+		
+        public void UpdateUnityEntitiesEntity(RealStatePtr L, int index, Unity.Entities.Entity val)
+        {
+		    
+            if (LuaAPI.lua_type(L, index) == LuaTypes.LUA_TUSERDATA)
+            {
+			    if (LuaAPI.xlua_gettypeid(L, index) != UnityEntitiesEntity_TypeID)
+				{
+				    throw new Exception("invalid userdata for Unity.Entities.Entity");
+				}
+				
+                IntPtr buff = LuaAPI.lua_touserdata(L, index);
+                if (!CopyByValue.Pack(buff, 0,  val))
+                {
+                    throw new Exception("pack fail for Unity.Entities.Entity ,value="+val);
+                }
+            }
+			
+            else
+            {
+                throw new Exception("try to update a data with lua type:" + LuaAPI.lua_type(L, index));
+            }
+        }
+        
         
 		// table cast optimze
 		
@@ -629,6 +696,12 @@ namespace XLua
 				translator.PushUnityEngineRay2D(L, array[index]);
 				return true;
 			}
+			else if (type == typeof(Unity.Entities.Entity[]))
+			{
+			    Unity.Entities.Entity[] array = obj as Unity.Entities.Entity[];
+				translator.PushUnityEntitiesEntity(L, array[index]);
+				return true;
+			}
             return false;
 		}
 		
@@ -680,6 +753,12 @@ namespace XLua
 			else if (type == typeof(UnityEngine.Ray2D[]))
 			{
 			    UnityEngine.Ray2D[] array = obj as UnityEngine.Ray2D[];
+				translator.Get(L, obj_idx, out array[array_idx]);
+				return true;
+			}
+			else if (type == typeof(Unity.Entities.Entity[]))
+			{
+			    Unity.Entities.Entity[] array = obj as Unity.Entities.Entity[];
 				translator.Get(L, obj_idx, out array[array_idx]);
 				return true;
 			}

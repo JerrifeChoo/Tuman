@@ -21,7 +21,7 @@ namespace XLua.CSObjectWrap
         {
 			ObjectTranslator translator = ObjectTranslatorPool.Instance.Find(L);
 			System.Type type = typeof(TT.Timer.TimerBridge);
-			Utils.BeginObjectRegister(type, L, translator, 0, 11, 1, 1);
+			Utils.BeginObjectRegister(type, L, translator, 0, 11, 0, 0);
 			
 			Utils.RegisterFunc(L, Utils.METHOD_IDX, "Add", _m_Add);
 			Utils.RegisterFunc(L, Utils.METHOD_IDX, "Remove", _m_Remove);
@@ -36,10 +36,8 @@ namespace XLua.CSObjectWrap
 			Utils.RegisterFunc(L, Utils.METHOD_IDX, "IsValid", _m_IsValid);
 			
 			
-			Utils.RegisterFunc(L, Utils.GETTER_IDX, "ecbSystem", _g_get_ecbSystem);
-            
-			Utils.RegisterFunc(L, Utils.SETTER_IDX, "ecbSystem", _s_set_ecbSystem);
-            
+			
+			
 			
 			Utils.EndObjectRegister(type, L, translator, null, null,
 			    null, null, null);
@@ -98,59 +96,59 @@ namespace XLua.CSObjectWrap
             
 			    int gen_param_count = LuaAPI.lua_gettop(L);
             
-                if(gen_param_count == 7&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 2)&& translator.Assignable<TT.Timer.HandleSystem.CallbackHandler>(L, 3)&& translator.Assignable<TT.Timer.HandleSystem.CallbackHandler>(L, 4)&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 5)&& LuaTypes.LUA_TBOOLEAN == LuaAPI.lua_type(L, 6)&& LuaTypes.LUA_TBOOLEAN == LuaAPI.lua_type(L, 7)) 
+                if(gen_param_count == 7&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 2)&& translator.Assignable<System.Action<Unity.Entities.Entity>>(L, 3)&& translator.Assignable<System.Action<Unity.Entities.Entity>>(L, 4)&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 5)&& LuaTypes.LUA_TBOOLEAN == LuaAPI.lua_type(L, 6)&& LuaTypes.LUA_TBOOLEAN == LuaAPI.lua_type(L, 7)) 
                 {
                     float _interval = (float)LuaAPI.lua_tonumber(L, 2);
-                    TT.Timer.HandleSystem.CallbackHandler _onCallback = translator.GetDelegate<TT.Timer.HandleSystem.CallbackHandler>(L, 3);
-                    TT.Timer.HandleSystem.CallbackHandler _onDestroy = translator.GetDelegate<TT.Timer.HandleSystem.CallbackHandler>(L, 4);
+                    System.Action<Unity.Entities.Entity> _onCallback = translator.GetDelegate<System.Action<Unity.Entities.Entity>>(L, 3);
+                    System.Action<Unity.Entities.Entity> _onDestroy = translator.GetDelegate<System.Action<Unity.Entities.Entity>>(L, 4);
                     int _repeatCount = LuaAPI.xlua_tointeger(L, 5);
                     bool _ignoreScale = LuaAPI.lua_toboolean(L, 6);
                     bool _ignoreGap = LuaAPI.lua_toboolean(L, 7);
                     
                         var gen_ret = gen_to_be_invoked.Add( _interval, _onCallback, _onDestroy, _repeatCount, _ignoreScale, _ignoreGap );
-                        translator.Push(L, gen_ret);
+                        translator.PushUnityEntitiesEntity(L, gen_ret);
                     
                     
                     
                     return 1;
                 }
-                if(gen_param_count == 6&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 2)&& translator.Assignable<TT.Timer.HandleSystem.CallbackHandler>(L, 3)&& translator.Assignable<TT.Timer.HandleSystem.CallbackHandler>(L, 4)&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 5)&& LuaTypes.LUA_TBOOLEAN == LuaAPI.lua_type(L, 6)) 
+                if(gen_param_count == 6&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 2)&& translator.Assignable<System.Action<Unity.Entities.Entity>>(L, 3)&& translator.Assignable<System.Action<Unity.Entities.Entity>>(L, 4)&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 5)&& LuaTypes.LUA_TBOOLEAN == LuaAPI.lua_type(L, 6)) 
                 {
                     float _interval = (float)LuaAPI.lua_tonumber(L, 2);
-                    TT.Timer.HandleSystem.CallbackHandler _onCallback = translator.GetDelegate<TT.Timer.HandleSystem.CallbackHandler>(L, 3);
-                    TT.Timer.HandleSystem.CallbackHandler _onDestroy = translator.GetDelegate<TT.Timer.HandleSystem.CallbackHandler>(L, 4);
+                    System.Action<Unity.Entities.Entity> _onCallback = translator.GetDelegate<System.Action<Unity.Entities.Entity>>(L, 3);
+                    System.Action<Unity.Entities.Entity> _onDestroy = translator.GetDelegate<System.Action<Unity.Entities.Entity>>(L, 4);
                     int _repeatCount = LuaAPI.xlua_tointeger(L, 5);
                     bool _ignoreScale = LuaAPI.lua_toboolean(L, 6);
                     
                         var gen_ret = gen_to_be_invoked.Add( _interval, _onCallback, _onDestroy, _repeatCount, _ignoreScale );
-                        translator.Push(L, gen_ret);
+                        translator.PushUnityEntitiesEntity(L, gen_ret);
                     
                     
                     
                     return 1;
                 }
-                if(gen_param_count == 5&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 2)&& translator.Assignable<TT.Timer.HandleSystem.CallbackHandler>(L, 3)&& translator.Assignable<TT.Timer.HandleSystem.CallbackHandler>(L, 4)&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 5)) 
+                if(gen_param_count == 5&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 2)&& translator.Assignable<System.Action<Unity.Entities.Entity>>(L, 3)&& translator.Assignable<System.Action<Unity.Entities.Entity>>(L, 4)&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 5)) 
                 {
                     float _interval = (float)LuaAPI.lua_tonumber(L, 2);
-                    TT.Timer.HandleSystem.CallbackHandler _onCallback = translator.GetDelegate<TT.Timer.HandleSystem.CallbackHandler>(L, 3);
-                    TT.Timer.HandleSystem.CallbackHandler _onDestroy = translator.GetDelegate<TT.Timer.HandleSystem.CallbackHandler>(L, 4);
+                    System.Action<Unity.Entities.Entity> _onCallback = translator.GetDelegate<System.Action<Unity.Entities.Entity>>(L, 3);
+                    System.Action<Unity.Entities.Entity> _onDestroy = translator.GetDelegate<System.Action<Unity.Entities.Entity>>(L, 4);
                     int _repeatCount = LuaAPI.xlua_tointeger(L, 5);
                     
                         var gen_ret = gen_to_be_invoked.Add( _interval, _onCallback, _onDestroy, _repeatCount );
-                        translator.Push(L, gen_ret);
+                        translator.PushUnityEntitiesEntity(L, gen_ret);
                     
                     
                     
                     return 1;
                 }
-                if(gen_param_count == 4&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 2)&& translator.Assignable<TT.Timer.HandleSystem.CallbackHandler>(L, 3)&& translator.Assignable<TT.Timer.HandleSystem.CallbackHandler>(L, 4)) 
+                if(gen_param_count == 4&& LuaTypes.LUA_TNUMBER == LuaAPI.lua_type(L, 2)&& translator.Assignable<System.Action<Unity.Entities.Entity>>(L, 3)&& translator.Assignable<System.Action<Unity.Entities.Entity>>(L, 4)) 
                 {
                     float _interval = (float)LuaAPI.lua_tonumber(L, 2);
-                    TT.Timer.HandleSystem.CallbackHandler _onCallback = translator.GetDelegate<TT.Timer.HandleSystem.CallbackHandler>(L, 3);
-                    TT.Timer.HandleSystem.CallbackHandler _onDestroy = translator.GetDelegate<TT.Timer.HandleSystem.CallbackHandler>(L, 4);
+                    System.Action<Unity.Entities.Entity> _onCallback = translator.GetDelegate<System.Action<Unity.Entities.Entity>>(L, 3);
+                    System.Action<Unity.Entities.Entity> _onDestroy = translator.GetDelegate<System.Action<Unity.Entities.Entity>>(L, 4);
                     
                         var gen_ret = gen_to_be_invoked.Add( _interval, _onCallback, _onDestroy );
-                        translator.Push(L, gen_ret);
+                        translator.PushUnityEntitiesEntity(L, gen_ret);
                     
                     
                     
@@ -473,37 +471,7 @@ namespace XLua.CSObjectWrap
             return 1;
         }
         
-        [MonoPInvokeCallbackAttribute(typeof(LuaCSFunction))]
-        static int _g_get_ecbSystem(RealStatePtr L)
-        {
-		    try {
-                ObjectTranslator translator = ObjectTranslatorPool.Instance.Find(L);
-			
-                TT.Timer.TimerBridge gen_to_be_invoked = (TT.Timer.TimerBridge)translator.FastGetCSObj(L, 1);
-                translator.Push(L, gen_to_be_invoked.ecbSystem);
-            } catch(System.Exception gen_e) {
-                return LuaAPI.luaL_error(L, "c# exception:" + gen_e);
-            }
-            return 1;
-        }
         
-        
-        
-        [MonoPInvokeCallbackAttribute(typeof(LuaCSFunction))]
-        static int _s_set_ecbSystem(RealStatePtr L)
-        {
-		    try {
-                ObjectTranslator translator = ObjectTranslatorPool.Instance.Find(L);
-			
-                TT.Timer.TimerBridge gen_to_be_invoked = (TT.Timer.TimerBridge)translator.FastGetCSObj(L, 1);
-                Unity.Entities.BeginSimulationEntityCommandBufferSystem.Singleton gen_value;translator.Get(L, 2, out gen_value);
-				gen_to_be_invoked.ecbSystem = gen_value;
-            
-            } catch(System.Exception gen_e) {
-                return LuaAPI.luaL_error(L, "c# exception:" + gen_e);
-            }
-            return 0;
-        }
         
 		
 		

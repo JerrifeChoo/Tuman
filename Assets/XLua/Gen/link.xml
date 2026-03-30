@@ -2,20 +2,6 @@
 
 <linker>
 
-	<assembly fullname="Assembly-CSharp">
-	    <type fullname="LuaBehavior" preserve="all"/>
-		<type fullname="ApplicationIntance" preserve="all"/>
-		<type fullname="TimerTestBehaviour" preserve="all"/>
-		<type fullname="Readme" preserve="all"/>
-		<type fullname="Readme+Section" preserve="all"/>
-		<type fullname="TT.Timer.Timer" preserve="all"/>
-		<type fullname="TT.Timer.CallbackTag" preserve="all"/>
-		<type fullname="TT.Timer.DestroyTag" preserve="all"/>
-		<type fullname="TT.Timer.HandleSystem" preserve="all"/>
-		<type fullname="TT.Timer.TimerBridge" preserve="all"/>
-		
-	</assembly>
-
 	<assembly fullname="UnityEngine.AndroidJNIModule">
 	    <type fullname="UnityEngine.JNINativeMethod" preserve="all"/>
 		
@@ -601,6 +587,18 @@
 		<type fullname="UnityEngine.UI.ScrollRect+ScrollRectEvent" preserve="all"/>
 		<type fullname="UnityEngine.UI.Slider+SliderEvent" preserve="all"/>
 		<type fullname="UnityEngine.UI.Toggle+ToggleEvent" preserve="all"/>
+		
+	</assembly>
+
+	<assembly fullname="Assembly-CSharp">
+	    <type fullname="TimerTestBehaviour" preserve="all"/>
+		<type fullname="Readme" preserve="all"/>
+		<type fullname="Readme+Section" preserve="all"/>
+		<type fullname="TT.Timer.Timer" preserve="all"/>
+		<type fullname="TT.Timer.CallbackTag" preserve="all"/>
+		<type fullname="TT.Timer.DestroyTag" preserve="all"/>
+		<type fullname="TT.Timer.HandleSystem" preserve="all"/>
+		<type fullname="TT.Timer.TimerBridge" preserve="all"/>
 		
 	</assembly>
 

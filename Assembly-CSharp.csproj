@@ -99,8 +99,8 @@
     <Compile Include="Assets\XLua\Gen\UnityEngine_CompassWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_UI_LayoutRebuilderWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_AvatarBuilderWrap.cs" />
-    <Compile Include="Assets\XLua\Gen\UnityEngine_RenderParamsWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_UI_AnimationTriggersWrap.cs" />
+    <Compile Include="Assets\XLua\Gen\UnityEngine_RenderParamsWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_FrameTimingWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_GyroscopeWrap.cs" />
     <Compile Include="Assets\Scripts\Timer\TimerBridge.cs" />
@@ -325,7 +325,6 @@
     <Compile Include="Assets\XLua\Gen\UnityEngine_ParticleSystem_LimitVelocityOverLifetimeModuleWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_UI_InputField_SubmitEventWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_PhysicsMaterial2DWrap.cs" />
-    <Compile Include="Assets\XLua\Gen\LuaBehaviorWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_ArticulationReducedSpaceWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_ImageConversionWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_SystemInfoWrap.cs" />
@@ -352,8 +351,8 @@
     <Compile Include="Assets\XLua\Gen\UnityEngine_GraphicsBufferWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_ArticulationDriveWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_LocalizationAssetWrap.cs" />
-    <Compile Include="Assets\XLua\Gen\UnityEngine_UI_ToggleWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_MicrophoneWrap.cs" />
+    <Compile Include="Assets\XLua\Gen\UnityEngine_UI_ToggleWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_ComputeShaderWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_BoxColliderWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_UI_HorizontalLayoutGroupWrap.cs" />
@@ -406,7 +405,6 @@
     <Compile Include="Assets\XLua\Gen\UnityEngine_ParticleSystem_LifetimeByEmitterSpeedModuleWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_AssetBundleManifestWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_LightProbeProxyVolumeWrap.cs" />
-    <Compile Include="Assets\Scripts\Lua\LuaBehaviour.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_JointLimitsWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_CharacterControllerWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_CanvasWrap.cs" />
@@ -574,13 +572,11 @@
     <Compile Include="Assets\XLua\Gen\UnityEngine_UI_InputField_OnChangeEventWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_JointSpringWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_WheelJoint2DWrap.cs" />
-    <Compile Include="Assets\Scripts\ApplicationIntance.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_UI_TextWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_StateMachineBehaviourWrap.cs" />
-    <Compile Include="Assets\XLua\Gen\ApplicationIntanceWrap.cs" />
+    <Compile Include="Assets\XLua\Gen\UnityEngine_UI_ClipperRegistryWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_AnimatorClipInfoWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_TrailRendererWrap.cs" />
-    <Compile Include="Assets\XLua\Gen\UnityEngine_UI_ClipperRegistryWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_ObjectWrap.cs" />
     <Compile Include="Assets\XLua\Src\ObjectTranslator.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_ModifiableContactPairWrap.cs" />

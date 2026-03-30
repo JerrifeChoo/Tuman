@@ -538,5 +538,61 @@ namespace XLua
             return true;
         }
         
+		
+		public static void UnPack(ObjectTranslator translator, RealStatePtr L, int idx, out Unity.Entities.Entity val)
+		{
+		    val = new Unity.Entities.Entity();
+            int top = LuaAPI.lua_gettop(L);
+			
+			if (Utils.LoadField(L, idx, "Index"))
+            {
+			    
+                translator.Get(L, top + 1, out val.Index);
+				
+            }
+            LuaAPI.lua_pop(L, 1);
+			
+			if (Utils.LoadField(L, idx, "Version"))
+            {
+			    
+                translator.Get(L, top + 1, out val.Version);
+				
+            }
+            LuaAPI.lua_pop(L, 1);
+			
+		}
+		
+        public static bool Pack(IntPtr buff, int offset, Unity.Entities.Entity field)
+        {
+            
+            if(!Pack(buff, offset, field.Index))
+            {
+                return false;
+            }
+            
+            if(!Pack(buff, offset + 4, field.Version))
+            {
+                return false;
+            }
+            
+            return true;
+        }
+        public static bool UnPack(IntPtr buff, int offset, out Unity.Entities.Entity field)
+        {
+            field = default(Unity.Entities.Entity);
+            
+            if(!UnPack(buff, offset, out field.Index))
+            {
+                return false;
+            }
+            
+            if(!UnPack(buff, offset + 4, out field.Version))
+            {
+                return false;
+            }
+            
+            return true;
+        }
+        
     }
 }

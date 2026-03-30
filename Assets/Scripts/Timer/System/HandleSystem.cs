@@ -1,14 +1,15 @@
+using System;
 using System.Collections.Generic;
 using Unity.Entities;
+using XLua;
 
 namespace TT.Timer
 {
     [UpdateBefore(typeof(TimerSystem))]
     public partial class HandleSystem : SystemBase
     {
-        public delegate void CallbackHandler(Entity entity);
-        public static Dictionary<int, CallbackHandler> DestroyHandlers = new Dictionary<int, CallbackHandler>(512);
-        public static Dictionary<int, CallbackHandler> CallbackHandlers = new Dictionary<int, CallbackHandler>(512);
+        public static Dictionary<int, Action<Entity>> DestroyHandlers = new Dictionary<int, Action<Entity>>(512);
+        public static Dictionary<int, Action<Entity>> CallbackHandlers = new Dictionary<int, Action<Entity>>(512);
         private EntityCommandBuffer Default = default(EntityCommandBuffer);
 
         protected override void OnCreate()
@@ -25,7 +26,7 @@ namespace TT.Timer
             EntityCommandBuffer command = Default;
             foreach (var (handle, destroy, entity) in SystemAPI.Query<RefRO<CallbackTag>, RefRO<DestroyTag>>().WithAny<CallbackTag, DestroyTag>().WithEntityAccess())
             {
-                CallbackHandler callback;
+                Action<Entity> callback;
                 if (command.Equals(Default))
                     command = ecbSystem.CreateCommandBuffer(base.World.Unmanaged);
 
