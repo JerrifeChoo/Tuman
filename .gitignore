@@ -3,3 +3,6 @@ Logs/
 Temp/
 obj/
 .vs/
+Assets/XLua/.Doc/
+Assets/XLua/.Examples/
+Assets/XLua/.Tutorial/

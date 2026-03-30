@@ -4,7 +4,7 @@ using Unity.Entities;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class TestBehaviour : MonoBehaviour
+public class TimerTestBehaviour : MonoBehaviour
 {
     public Button btn;
     private Entity timer;
