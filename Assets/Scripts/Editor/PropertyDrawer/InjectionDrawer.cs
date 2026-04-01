@@ -52,7 +52,7 @@ namespace TT.Editor
                 }
                 objs = new UnityEngine.Object[] { obj };
                 total += components.Length;
-                if (components.Length > 0)
+                if (total > 1)
                 {
                     Array.Resize(ref selected, total);
                     Array.Resize(ref objs, total);
