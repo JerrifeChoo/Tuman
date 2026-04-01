@@ -29,16 +29,18 @@ namespace TT.Timer
                 return instance;
             }
         }
-        
+
         private void Initialized()
         {
             world = World.DefaultGameObjectInjectionWorld;
             entityManager = world.EntityManager;
 
             EntityQueryBuilder entityQueryBuilder = new EntityQueryBuilder(Allocator.Temp);
-            entityQueryBuilder = entityQueryBuilder.WithAllRW<BeginSimulationEntityCommandBufferSystem.Singleton>();
-            entityQueryBuilder = entityQueryBuilder.WithOptions(EntityQueryOptions.IncludeSystems);
-            ecbSystem = entityQueryBuilder.Build(entityManager).GetSingleton<BeginSimulationEntityCommandBufferSystem.Singleton>();
+            entityQueryBuilder = entityQueryBuilder.WithAllRW<BeginSimulationEntityCommandBufferSystem.Singleton>()
+                .WithOptions(EntityQueryOptions.IncludeSystems);
+            var entityQuery = entityQueryBuilder.Build(entityManager);
+            ecbSystem = entityQuery.GetSingleton<BeginSimulationEntityCommandBufferSystem.Singleton>();
+            entityQuery.Dispose();
             entityQueryBuilder.Dispose();
             //创建模板，直接分配内存并复制，减少动态创建内存移动和内部ArcheType变更
             Prefab = entityManager.CreateEntity();

@@ -17,25 +17,25 @@ namespace TT.Timer
             {
                 var timer = timers[i];
 
-                var (current, flag) = (timer.Current, timer.Flag);
-                bool expired = (current & (byte)Flag.Expired) != 0;
-                bool paused = (current & (byte)Flag.Paused) != 0;
-                bool ignoreScale = (current & (byte)Flag.IgnoreScale) != 0;
-                bool ignoreGap = (current & (byte)Flag.IgnoreGap) != 0;
+                var  (current, flag) = (timer.Current, timer.Flag);
+                bool expired         = (current & (byte)Flag.Expired)     != 0;
+                bool paused          = (current & (byte)Flag.Paused)      != 0;
+                bool ignoreScale     = (current & (byte)Flag.IgnoreScale) != 0;
+                bool ignoreGap       = (current & (byte)Flag.IgnoreGap)   != 0;
 
-                var (newExpired, newPaused, newIgnoreScale, newIgnoreGap) = (expired, paused, ignoreScale, ignoreGap);
-                bool shouldUpdate = current != flag;
-                //状态变更
+                var  (newExpired, newPaused, newIgnoreScale, newIgnoreGap) = (expired, paused, ignoreScale, ignoreGap);
+                bool shouldUpdate                                          = current != flag;
+                  //状态变更
                 if (shouldUpdate)
                 {
-                    newExpired = (flag & (byte)Flag.Expired) != 0;
-                    newPaused = (flag & (byte)Flag.Paused) != 0;
+                    newExpired     = (flag & (byte)Flag.Expired)     != 0;
+                    newPaused      = (flag & (byte)Flag.Paused)      != 0;
                     newIgnoreScale = (flag & (byte)Flag.IgnoreScale) != 0;
-                    newIgnoreGap = (flag & (byte)Flag.IgnoreGap) != 0;
-                    timer.Current = flag;
+                    newIgnoreGap   = (flag & (byte)Flag.IgnoreGap)   != 0;
+                    timer.Current  = flag;
                 }
 
-                //过期
+                  //过期
                 if (expired || newExpired)
                 {
                     if (shouldUpdate)
@@ -45,7 +45,7 @@ namespace TT.Timer
                         else
                             ecb.SetComponent(entities[i], timer);
                     }
-                    //只存在未过期->过期
+                      //只存在未过期->过期
                     if (expired != newExpired)
                     {
                         if (paralleled)
@@ -56,39 +56,39 @@ namespace TT.Timer
                     continue;
                 }
 
-                var beginStamp = timer.BeginStamp;
+                var   beginStamp  = timer.BeginStamp;
                 float restitution = timer.Restitution;
-                float scale = 1;
+                float scale       = 1;
                 if (!ignoreScale)
                 {
                     scale = timer.Scale;
                     if (scale != timeScale)
                     {
-                        timer.Scale = timeScale;
+                        timer.Scale  = timeScale;
                         shouldUpdate = true;
                     }
                 }
 
-                //暂停
+                  //暂停
                 if (paused || newPaused)
                 {
                     if (paused != newPaused)
                     {
                         if (!ignoreGap)
                         {
-                            //被恢复
+                              //被恢复
                             if (paused)
                             {
                                 timer.Supplement = timer.CompleteCount;
                                 timer.BeginStamp = timeStamp;
-                                shouldUpdate = true;
+                                shouldUpdate     = true;
                             }
-                            //被暂停
+                              //被暂停
                             else if (timer.Interval != 0 && scale != 0)
                             {
-                                restitution += ((timeStamp - beginStamp) * scale) % timer.Interval;
-                                timer.Restitution = restitution;
-                                shouldUpdate = true;
+                                restitution       += ((timeStamp - beginStamp) * scale) % timer.Interval;
+                                timer.Restitution  = restitution;
+                                shouldUpdate       = true;
                             }
                         }
                     }
@@ -103,21 +103,21 @@ namespace TT.Timer
                     continue;
                 }
 
-                //缩放系数
+                  //缩放系数
                 if (!ignoreScale)
                 {
-                    //系数改变
+                      //系数改变
                     if (scale != timeScale)
                     {
                         if (timer.Interval != 0 && scale != 0)
                         {
-                            restitution += ((timeStamp - beginStamp) * scale) % timer.Interval;
-                            timer.Restitution = restitution;
+                            restitution       += ((timeStamp - beginStamp) * scale) % timer.Interval;
+                            timer.Restitution  = restitution;
                         }
                         timer.Supplement = timer.CompleteCount;
                         timer.BeginStamp = timeStamp;
-                        scale = timeScale;
-                        shouldUpdate = true;
+                        scale            = timeScale;
+                        shouldUpdate     = true;
                     }
 
                     if (timeScale == 0)
@@ -140,22 +140,22 @@ namespace TT.Timer
                 else
                 {
                     scalePass = (timeStamp - timer.BeginStamp) * scale + restitution;
-                    times = timer.Supplement + (uint)math.floor(scalePass / timer.Interval);
-                    //修复缩放可能导致的数值溢出bug
+                    times     = timer.Supplement + (uint)math.floor(scalePass / timer.Interval);
+                      //修复缩放可能导致的数值溢出bug
                     if (times < timer.CompleteCount)
                     {
-                        timer.BeginStamp = timeStamp - times * timer.Interval / scale - (scalePass % timer.Interval);
-                        timer.Supplement = 0;
+                        timer.BeginStamp    = timeStamp - times * timer.Interval / scale - (scalePass % timer.Interval);
+                        timer.Supplement    = 0;
                         timer.CompleteCount = 0;
-                        shouldUpdate = true;
+                        shouldUpdate        = true;
                     }
                 }
                 if (times > 0 && times > timer.CompleteCount)
                 {
-                    //消费补偿
+                      //消费补偿
                     if (restitution > 0)
                     {
-                        timer.BeginStamp = timeStamp - (times - timer.Supplement) * timer.Interval / scale - (scalePass % timer.Interval);
+                        timer.BeginStamp  = timeStamp - (times - timer.Supplement) * timer.Interval / scale - (scalePass % timer.Interval);
                         timer.Restitution = 0;
                     }
                     shouldUpdate = true;

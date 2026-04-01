@@ -1,19 +1,18 @@
 local TestLua = Class("TestLua", function()
 end)
 
-function TestLua:Ctor()
-    self.test = 1
+function TestLua: Ctor()
     print("TestLua:Ctor", self, TestLua)
 end
 
-function TestLua:Awake()
+function TestLua: Awake()
     print("TestLua:Awake", self, TestLua, self.test)
 end
 
-function TestLua:Start()
+function TestLua: Start()
 end
 
-function TestLua:OnDestroy()
+function TestLua: OnDestroy()
     print(self.gameObject.name, "TestLua:OnDestroy")
 end
 
