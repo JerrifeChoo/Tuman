@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using TT.Attr;
 using UnityEngine;
 using XLua;
 
@@ -7,10 +8,10 @@ namespace TT.Lua
 {
     public class LuaBehaviour : MonoBehaviour
     {
-        [SerializeField, LuaPath()]
+        [SerializeField, LuaPath]
         private string luaFile;
-        [SerializeField]
-        private Dictionary<string, UnityEngine.Object> injections;
+        [SerializeField, Injection]
+        private Injection[] injections;
 
         private LuaTable luaInstance;
         private LuaFunction luaAwake;

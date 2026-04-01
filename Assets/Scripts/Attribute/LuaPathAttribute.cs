@@ -1,8 +1,11 @@
 using UnityEngine;
 
-public class LuaPathAttribute : PropertyAttribute
+namespace TT.Attr
 {
-    public string CullingDir;
+    public class LuaPathAttribute : PropertyAttribute
+    {
+        public string CullingDir;
 
-    public LuaPathAttribute(string cullingDir = "Assets/LuaScripts/") => CullingDir = cullingDir;
+        public LuaPathAttribute(string cullingDir = "Assets/LuaScripts/") => CullingDir = cullingDir;
+    }
 }
