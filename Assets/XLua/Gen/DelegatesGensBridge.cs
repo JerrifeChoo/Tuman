@@ -60,7 +60,28 @@ namespace XLua
 #endif
 		}
         
-		public void __Gen_Delegate_Imp2(bool p0)
+		public void __Gen_Delegate_Imp2()
+		{
+#if THREAD_SAFE || HOTFIX_ENABLE
+            lock (luaEnv.luaEnvLock)
+            {
+#endif
+                RealStatePtr L = luaEnv.rawL;
+                int errFunc = LuaAPI.pcall_prepare(L, errorFuncRef, luaReference);
+                
+                
+                PCall(L, 0, 0, errFunc);
+                
+                
+                
+                LuaAPI.lua_settop(L, errFunc - 1);
+                
+#if THREAD_SAFE || HOTFIX_ENABLE
+            }
+#endif
+		}
+        
+		public void __Gen_Delegate_Imp3(bool p0)
 		{
 #if THREAD_SAFE || HOTFIX_ENABLE
             lock (luaEnv.luaEnvLock)
@@ -82,7 +103,7 @@ namespace XLua
 #endif
 		}
         
-		public void __Gen_Delegate_Imp3(float[] p0)
+		public void __Gen_Delegate_Imp4(float[] p0)
 		{
 #if THREAD_SAFE || HOTFIX_ENABLE
             lock (luaEnv.luaEnvLock)
@@ -104,7 +125,7 @@ namespace XLua
 #endif
 		}
         
-		public void __Gen_Delegate_Imp4(int p0)
+		public void __Gen_Delegate_Imp5(int p0)
 		{
 #if THREAD_SAFE || HOTFIX_ENABLE
             lock (luaEnv.luaEnvLock)
@@ -126,7 +147,7 @@ namespace XLua
 #endif
 		}
         
-		public void __Gen_Delegate_Imp5(string p0, bool p1, string p2)
+		public void __Gen_Delegate_Imp6(string p0, bool p1, string p2)
 		{
 #if THREAD_SAFE || HOTFIX_ENABLE
             lock (luaEnv.luaEnvLock)
@@ -140,27 +161,6 @@ namespace XLua
                 LuaAPI.lua_pushstring(L, p2);
                 
                 PCall(L, 3, 0, errFunc);
-                
-                
-                
-                LuaAPI.lua_settop(L, errFunc - 1);
-                
-#if THREAD_SAFE || HOTFIX_ENABLE
-            }
-#endif
-		}
-        
-		public void __Gen_Delegate_Imp6()
-		{
-#if THREAD_SAFE || HOTFIX_ENABLE
-            lock (luaEnv.luaEnvLock)
-            {
-#endif
-                RealStatePtr L = luaEnv.rawL;
-                int errFunc = LuaAPI.pcall_prepare(L, errorFuncRef, luaReference);
-                
-                
-                PCall(L, 0, 0, errFunc);
                 
                 
                 
@@ -663,69 +663,69 @@ namespace XLua
 			    return new UnityEngine.Camera.CameraCallback(__Gen_Delegate_Imp1);
 			}
 		
-		    if (type == typeof(UnityEngine.AudioSettings.AudioConfigurationChangeHandler))
+		    if (type == typeof(System.Action))
 			{
-			    return new UnityEngine.AudioSettings.AudioConfigurationChangeHandler(__Gen_Delegate_Imp2);
-			}
-		
-		    if (type == typeof(System.Action<bool>))
-			{
-			    return new System.Action<bool>(__Gen_Delegate_Imp2);
-			}
-		
-		    if (type == typeof(UnityEngine.AudioClip.PCMReaderCallback))
-			{
-			    return new UnityEngine.AudioClip.PCMReaderCallback(__Gen_Delegate_Imp3);
-			}
-		
-		    if (type == typeof(UnityEngine.AudioClip.PCMSetPositionCallback))
-			{
-			    return new UnityEngine.AudioClip.PCMSetPositionCallback(__Gen_Delegate_Imp4);
-			}
-		
-		    if (type == typeof(UnityEngine.Application.AdvertisingIdentifierCallback))
-			{
-			    return new UnityEngine.Application.AdvertisingIdentifierCallback(__Gen_Delegate_Imp5);
+			    return new System.Action(__Gen_Delegate_Imp2);
 			}
 		
 		    if (type == typeof(UnityEngine.Application.LowMemoryCallback))
 			{
-			    return new UnityEngine.Application.LowMemoryCallback(__Gen_Delegate_Imp6);
+			    return new UnityEngine.Application.LowMemoryCallback(__Gen_Delegate_Imp2);
 			}
 		
 		    if (type == typeof(UnityEngine.Events.UnityAction))
 			{
-			    return new UnityEngine.Events.UnityAction(__Gen_Delegate_Imp6);
-			}
-		
-		    if (type == typeof(System.Action))
-			{
-			    return new System.Action(__Gen_Delegate_Imp6);
+			    return new UnityEngine.Events.UnityAction(__Gen_Delegate_Imp2);
 			}
 		
 		    if (type == typeof(UnityEngine.Display.DisplaysUpdatedDelegate))
 			{
-			    return new UnityEngine.Display.DisplaysUpdatedDelegate(__Gen_Delegate_Imp6);
+			    return new UnityEngine.Display.DisplaysUpdatedDelegate(__Gen_Delegate_Imp2);
 			}
 		
 		    if (type == typeof(UnityEngine.Font.FontTextureRebuildCallback))
 			{
-			    return new UnityEngine.Font.FontTextureRebuildCallback(__Gen_Delegate_Imp6);
+			    return new UnityEngine.Font.FontTextureRebuildCallback(__Gen_Delegate_Imp2);
 			}
 		
 		    if (type == typeof(UnityEngine.CanvasRenderer.OnRequestRebuild))
 			{
-			    return new UnityEngine.CanvasRenderer.OnRequestRebuild(__Gen_Delegate_Imp6);
+			    return new UnityEngine.CanvasRenderer.OnRequestRebuild(__Gen_Delegate_Imp2);
 			}
 		
 		    if (type == typeof(UnityEngine.Canvas.WillRenderCanvases))
 			{
-			    return new UnityEngine.Canvas.WillRenderCanvases(__Gen_Delegate_Imp6);
+			    return new UnityEngine.Canvas.WillRenderCanvases(__Gen_Delegate_Imp2);
 			}
 		
 		    if (type == typeof(UnityEngine.RemoteSettings.UpdatedEventHandler))
 			{
-			    return new UnityEngine.RemoteSettings.UpdatedEventHandler(__Gen_Delegate_Imp6);
+			    return new UnityEngine.RemoteSettings.UpdatedEventHandler(__Gen_Delegate_Imp2);
+			}
+		
+		    if (type == typeof(UnityEngine.AudioSettings.AudioConfigurationChangeHandler))
+			{
+			    return new UnityEngine.AudioSettings.AudioConfigurationChangeHandler(__Gen_Delegate_Imp3);
+			}
+		
+		    if (type == typeof(System.Action<bool>))
+			{
+			    return new System.Action<bool>(__Gen_Delegate_Imp3);
+			}
+		
+		    if (type == typeof(UnityEngine.AudioClip.PCMReaderCallback))
+			{
+			    return new UnityEngine.AudioClip.PCMReaderCallback(__Gen_Delegate_Imp4);
+			}
+		
+		    if (type == typeof(UnityEngine.AudioClip.PCMSetPositionCallback))
+			{
+			    return new UnityEngine.AudioClip.PCMSetPositionCallback(__Gen_Delegate_Imp5);
+			}
+		
+		    if (type == typeof(UnityEngine.Application.AdvertisingIdentifierCallback))
+			{
+			    return new UnityEngine.Application.AdvertisingIdentifierCallback(__Gen_Delegate_Imp6);
 			}
 		
 		    if (type == typeof(UnityEngine.Application.LogCallback))

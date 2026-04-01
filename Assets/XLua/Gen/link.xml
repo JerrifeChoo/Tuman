@@ -594,11 +594,14 @@
 	    <type fullname="TimerTestBehaviour" preserve="all"/>
 		<type fullname="Readme" preserve="all"/>
 		<type fullname="Readme+Section" preserve="all"/>
+		<type fullname="TT.AppInstance" preserve="all"/>
 		<type fullname="TT.Timer.Timer" preserve="all"/>
 		<type fullname="TT.Timer.CallbackTag" preserve="all"/>
 		<type fullname="TT.Timer.DestroyTag" preserve="all"/>
 		<type fullname="TT.Timer.HandleSystem" preserve="all"/>
 		<type fullname="TT.Timer.TimerBridge" preserve="all"/>
+		<type fullname="TT.Lua.Injection" preserve="all"/>
+		<type fullname="TT.Lua.LuaBehaviour" preserve="all"/>
 		
 	</assembly>
 

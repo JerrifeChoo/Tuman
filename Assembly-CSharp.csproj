@@ -99,10 +99,11 @@
     <Compile Include="Assets\XLua\Gen\UnityEngine_CompassWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_UI_LayoutRebuilderWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_AvatarBuilderWrap.cs" />
-    <Compile Include="Assets\XLua\Gen\UnityEngine_UI_AnimationTriggersWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_RenderParamsWrap.cs" />
+    <Compile Include="Assets\XLua\Gen\UnityEngine_UI_AnimationTriggersWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_FrameTimingWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_GyroscopeWrap.cs" />
+    <Compile Include="Assets\Scripts\Lua\Injections.cs" />
     <Compile Include="Assets\Scripts\Timer\TimerBridge.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_ColorWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_UI_HorizontalOrVerticalLayoutGroupWrap.cs" />
@@ -146,6 +147,7 @@
     <Compile Include="Assets\XLua\Gen\PackUnpack.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_ParticleSystem_EmissionModuleWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_ColliderWrap.cs" />
+    <Compile Include="Assets\XLua\Gen\TT_AppInstanceWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_WWWFormWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_GLWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_SoftJointLimitWrap.cs" />
@@ -281,6 +283,7 @@
     <Compile Include="Assets\XLua\Gen\UnityEngine_UI_LayoutElementWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_ParticleSystem_MinMaxCurveWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_SpringJoint2DWrap.cs" />
+    <Compile Include="Assets\Scripts\AppInstance.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_CharacterInfoWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_UnityExceptionWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_RuntimeAnimatorControllerWrap.cs" />
@@ -343,6 +346,7 @@
     <Compile Include="Assets\XLua\Gen\UnityEngine_DetailInstanceTransformWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_ImageEffectTransformsToLDRWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_WaitForFixedUpdateWrap.cs" />
+    <Compile Include="Assets\XLua\Gen\TT_Lua_InjectionWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_StackTraceUtilityWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_UI_CanvasUpdateRegistryWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_AssetBundleUnloadOperationWrap.cs" />
@@ -351,9 +355,10 @@
     <Compile Include="Assets\XLua\Gen\UnityEngine_GraphicsBufferWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_ArticulationDriveWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_LocalizationAssetWrap.cs" />
-    <Compile Include="Assets\XLua\Gen\UnityEngine_MicrophoneWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_UI_ToggleWrap.cs" />
+    <Compile Include="Assets\XLua\Gen\UnityEngine_MicrophoneWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_ComputeShaderWrap.cs" />
+    <Compile Include="Assets\Scripts\Attribute\LuaPathAttribute.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_BoxColliderWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_UI_HorizontalLayoutGroupWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_ImageEffectAfterScaleWrap.cs" />
@@ -405,6 +410,7 @@
     <Compile Include="Assets\XLua\Gen\UnityEngine_ParticleSystem_LifetimeByEmitterSpeedModuleWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_AssetBundleManifestWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_LightProbeProxyVolumeWrap.cs" />
+    <Compile Include="Assets\Scripts\Lua\LuaBehaviour.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_JointLimitsWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_CharacterControllerWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_CanvasWrap.cs" />
@@ -572,11 +578,12 @@
     <Compile Include="Assets\XLua\Gen\UnityEngine_UI_InputField_OnChangeEventWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_JointSpringWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_WheelJoint2DWrap.cs" />
+    <Compile Include="Assets\XLua\Gen\TT_Lua_LuaBehaviourWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_UI_TextWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_StateMachineBehaviourWrap.cs" />
-    <Compile Include="Assets\XLua\Gen\UnityEngine_UI_ClipperRegistryWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_AnimatorClipInfoWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_TrailRendererWrap.cs" />
+    <Compile Include="Assets\XLua\Gen\UnityEngine_UI_ClipperRegistryWrap.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_ObjectWrap.cs" />
     <Compile Include="Assets\XLua\Src\ObjectTranslator.cs" />
     <Compile Include="Assets\XLua\Gen\UnityEngine_ModifiableContactPairWrap.cs" />
@@ -588,6 +595,7 @@
   <ItemGroup>
     <None Include="Assets\TextMesh Pro\Shaders\TMPro.cginc" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF-Mobile Overlay.shader" />
+    <None Include="Assets\LuaScripts\Main.lua.txt" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_Bitmap.shader" />
     <None Include="Assets\XLua\Resources\xlua\util.lua.txt" />
     <None Include="Assets\TextMesh Pro\Shaders\TMPro_Mobile.cginc" />
@@ -605,6 +613,7 @@
     <None Include="Assets\TextMesh Pro\Shaders\TMPro_Properties.cginc" />
     <None Include="Assets\TextMesh Pro\Shaders\TMPro_Surface.cginc" />
     <None Include="Assets\XLua\Resources\perf\memory.lua.txt" />
+    <None Include="Assets\LuaScripts\Global.lua.txt" />
     <None Include="Assets\TextMesh Pro\Resources\LineBreaking Following Characters.txt" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF-Mobile Masking.shader" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF Overlay.shader" />
@@ -613,6 +622,7 @@
     <None Include="Assets\XLua\Resources\tdr\tdr.lua.txt" />
     <None Include="Assets\XLua\CHANGELOG.txt" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF-Mobile.shader" />
+    <None Include="Assets\LuaScripts\TestLua.lua.txt" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_Sprite.shader" />
   </ItemGroup>
   <ItemGroup>

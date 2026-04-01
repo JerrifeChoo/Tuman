@@ -1471,6 +1471,9 @@ namespace XLua.CSObjectWrap
             translator.DelayWrapLoader(typeof(Readme.Section), ReadmeSectionWrap.__Register);
         
         
+            translator.DelayWrapLoader(typeof(TT.AppInstance), TTAppInstanceWrap.__Register);
+        
+        
             translator.DelayWrapLoader(typeof(TT.Timer.Timer), TTTimerTimerWrap.__Register);
         
         
@@ -1484,6 +1487,12 @@ namespace XLua.CSObjectWrap
         
         
             translator.DelayWrapLoader(typeof(TT.Timer.TimerBridge), TTTimerTimerBridgeWrap.__Register);
+        
+        
+            translator.DelayWrapLoader(typeof(TT.Lua.Injection), TTLuaInjectionWrap.__Register);
+        
+        
+            translator.DelayWrapLoader(typeof(TT.Lua.LuaBehaviour), TTLuaLuaBehaviourWrap.__Register);
         
         
         

@@ -24,13 +24,13 @@ namespace TT.Timer
                 {
                     var gameObject = new GameObject("TimerBridge");
                     instance = gameObject.AddComponent<TimerBridge>();
-                    DontDestroyOnLoad(gameObject);
+                    instance.Initialized();
                 }
                 return instance;
             }
         }
-
-        private void Awake()
+        
+        private void Initialized()
         {
             world = World.DefaultGameObjectInjectionWorld;
             entityManager = world.EntityManager;

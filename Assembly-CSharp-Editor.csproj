@@ -74,6 +74,7 @@
   <ItemGroup>
     <Compile Include="Assets\XLua\Editor\ExampleConfig.cs" />
     <Compile Include="Assets\TutorialInfo\Scripts\Editor\ReadmeEditor.cs" />
+    <Compile Include="Assets\Scripts\Editor\PropertyDrawer\LuaPathDrawer.cs" />
     <Compile Include="Assets\XLua\Editor\XLuaUnityDefaultConfig.cs" />
     <Compile Include="Assets\XLua\Src\Editor\Generator.cs" />
     <Compile Include="Assets\XLua\Src\Editor\Hotfix.cs" />

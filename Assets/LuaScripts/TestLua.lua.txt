@@ -1,0 +1,20 @@
+local TestLua = Class("TestLua", function()
+end)
+
+function TestLua:Ctor()
+    self.test = 1
+    print("TestLua:Ctor", self, TestLua)
+end
+
+function TestLua:Awake()
+    print("TestLua:Awake", self, TestLua, self.test)
+end
+
+function TestLua:Start()
+end
+
+function TestLua:OnDestroy()
+    print("TestLua:OnDestroy")
+end
+
+return TestLua
