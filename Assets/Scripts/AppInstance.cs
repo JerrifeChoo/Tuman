@@ -20,24 +20,21 @@ namespace TT
         {
             get
             {
-                //if (!instance)
-                //{
-                //    var gameObject = new GameObject("AppInstance");
-                //    instance = gameObject.AddComponent<AppInstance>();
-                //    instance.Initialized();
-                //}
                 return instance;
             }
         }
 
         private void Awake()
         {
-            if (!instance)
+            if (instance != null && instance != this)
             {
-                instance = this;
-                instance.Initialized();
+                Destroy(gameObject);
+                return;
             }
+            instance = this;
+            Initialized();
         }
+
         public bool IsLuaFile(ref string filepath)
         {
             if (string.IsNullOrEmpty(filepath))
@@ -80,25 +77,17 @@ namespace TT
 
         private void Dispose()
         {
-            try
-            {
-                LuaEnv.Dispose();
-                LuaEnv = null;
-            }
-            catch (Exception e)
-            {
-            }
+            LuaEnv.Dispose();
+            LuaEnv = null;
         }
 
         private void OnDestroy()
         {
-            Debug.LogError("OnDestroy========");
             Dispose();
         }
 
         private void OnApplicationQuit()
         {
-            Debug.LogError("OnApplicationQuit========");
             //Dispose();
         }
     }

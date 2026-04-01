@@ -14,7 +14,7 @@ function TestLua:Start()
 end
 
 function TestLua:OnDestroy()
-    print("TestLua:OnDestroy")
+    print(self.gameObject.name, "TestLua:OnDestroy")
 end
 
 return TestLua
