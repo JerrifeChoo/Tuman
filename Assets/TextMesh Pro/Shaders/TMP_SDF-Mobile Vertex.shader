@@ -84,10 +84,10 @@ SubShader {
 			UNITY_VERTEX_INPUT_INSTANCE_ID
 			float4	vertex			: POSITION;
 			float3	normal			: NORMAL;
-			float4  tangent		    : TANGENT;
 			fixed4	color			: COLOR;
 			float2	texcoord0		: TEXCOORD0;
 			float2	texcoord1		: TEXCOORD1;
+			float4	texcoord2		: TEXCOORD2;
 		};
 
 		struct pixel_t {
@@ -161,10 +161,14 @@ SubShader {
 
 			float scale = rsqrt(dot(pixelSize, pixelSize));
 			scale *= abs(input.texcoord1.y) * _GradientScale * (_Sharpness + 1);
-			if(UNITY_MATRIX_P[3][3] == 0) scale = lerp(abs(scale) * (1 - _PerspectiveFilter), scale, abs(dot(UnityObjectToWorldNormal(input.normal.xyz), normalize(WorldSpaceViewDir(vert)))));
+			// if(UNITY_MATRIX_P[3][3] == 0) scale = lerp(abs(scale) * (1 - _PerspectiveFilter), scale, abs(dot(UnityObjectToWorldNormal(input.normal.xyz), normalize(WorldSpaceViewDir(vert)))));
+			// float perspFactor = 1 - UNITY_MATRIX_P[3][3];
+			// float viewFactor = abs(dot(UnityObjectToWorldNormal(input.normal.xyz), normalize(WorldSpaceViewDir(vert))));
+			// float filteredScale = lerp(abs(scale) * (1 - _PerspectiveFilter), scale, viewFactor);
+			// scale = lerp(scale, filteredScale, perspFactor);
 
-			fixed4 outlineColor = FloatToColor(input.tangent.x);
-			float4 ratios = FloatToRatio(input.tangent.y);
+			fixed4 outlineColor = FloatToColor(input.texcoord2.x);
+			float4 ratios = FloatToRatio(input.texcoord2.y);
 
 			float weight = lerp(_WeightNormal, _WeightBold, bold) / 4.0;
 			weight = (weight + _FaceDilate) * ratios.y * 0.5;
@@ -187,10 +191,10 @@ SubShader {
 			outlineColor = lerp(faceColor, outlineColor, sqrt(min(1.0, (outline * 2))));
 
 			#if (UNDERLAY_ON | UNDERLAY_INNER)
-			fixed4 ulps = FloatToULPS(input.tangent.w);
+			fixed4 ulps = FloatToULPS(input.texcoord2.w);
 			layerScale /= 1 + ((ulps.w * ratios.w) * layerScale);
 			float layerBias = (.5 - weight) * layerScale - .5 - ((ulps.z * ratios.w) * .5 * layerScale);
-			fixed4 underlayColor = FloatToColor(input.tangent.z);
+			fixed4 underlayColor = FloatToColor(input.texcoord2.z);
 
 			float x = -(ulps.x * ratios.w) * _GradientScale / _TextureWidth;
 			float y = -(ulps.y * ratios.w) * _GradientScale / _TextureHeight;

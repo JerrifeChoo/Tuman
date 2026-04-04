@@ -1,15 +1,33 @@
 local TestLua = Class("TestLua", function()
 end)
 
+local weakTable = setmetatable({}, { __mode = "k"})
+
 function TestLua: Ctor()
     print("TestLua:Ctor", self, TestLua)
 end
 
 function TestLua: Awake()
     print("TestLua:Awake", self, TestLua, self.test)
+    weakTable[self] = function()
+        print("weak: self")
+    end
+
+    weakTable[1] = function()
+        print("weak: ", 1)
+    end
+
+    local t = {}
+    weakTable[t] = function()
+        print("weak: tttt", t)
+    end
 end
 
 function TestLua: Start()
+    collectgarbage()
+    for k, v in pairs(weakTable) do
+        v()
+    end
 end
 
 function TestLua: OnDestroy()

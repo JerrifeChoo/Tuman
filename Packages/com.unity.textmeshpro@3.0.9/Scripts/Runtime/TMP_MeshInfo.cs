@@ -1,9 +1,6 @@
 ﻿using UnityEngine;
 using System;
-using System.Linq;
-using System.Collections;
 using System.Collections.Generic;
-using UnityEngine.Rendering;
 
 
 namespace TMPro
@@ -27,8 +24,14 @@ namespace TMPro
         public Vector3[] normals;
         public Vector4[] tangents;
 
+        /// <summary>
+        /// Per-vertex data for TMP SDF "Vertex Color" shaders (outline / ratio / underlay packing).
+        /// Mirrored from <see cref="tangents"/> and uploaded with <see cref="Mesh.SetUVs"/> channel 2 so UGUI scale/rotate will not corrupt it like <see cref="Mesh.tangents"/>.
+        /// </summary>
+
         public Vector2[] uvs0;
         public Vector2[] uvs2;
+        public Vector4[] uvs3;
         //public Vector2[] uvs4;
         public Color32[] colors32;
         public int[] triangles;
@@ -65,6 +68,7 @@ namespace TMPro
             this.vertices = new Vector3[sizeX4];
             this.uvs0 = new Vector2[sizeX4];
             this.uvs2 = new Vector2[sizeX4];
+            this.uvs3 = new Vector4[sizeX4];
             //this.uvs4 = new Vector2[sizeX4]; // SDF scale data
             this.colors32 = new Color32[sizeX4];
 
@@ -82,6 +86,7 @@ namespace TMPro
                     this.vertices[index_X4 + i] = Vector3.zero;
                     this.uvs0[index_X4 + i] = Vector2.zero;
                     this.uvs2[index_X4 + i] = Vector2.zero;
+                    this.uvs3[index_X4 + i] = Vector4.zero;
                     //this.uvs4[index_X4 + i] = Vector2.zero;
                     this.colors32[index_X4 + i] = s_DefaultColor;
                     this.normals[index_X4 + i] = s_DefaultNormal;
@@ -147,6 +152,7 @@ namespace TMPro
 
             this.normals = new Vector3[size_x_s0];
             this.tangents = new Vector4[size_x_s0];
+            this.uvs3 = new Vector4[size_x_s0];
 
             this.triangles = new int[size_x_s1];
 
@@ -159,6 +165,7 @@ namespace TMPro
                     this.vertices[index_x_s0 + i] = Vector3.zero;
                     this.uvs0[index_x_s0 + i] = Vector2.zero;
                     this.uvs2[index_x_s0 + i] = Vector2.zero;
+                    this.uvs3[index_x_s0 + i] = Vector4.zero;
                     //this.uvs4[index_X4 + i] = Vector2.zero;
                     this.colors32[index_x_s0 + i] = s_DefaultColor;
                     this.normals[index_x_s0 + i] = s_DefaultNormal;
@@ -253,6 +260,7 @@ namespace TMPro
 
             Array.Resize(ref this.uvs0, size_X4);
             Array.Resize(ref this.uvs2, size_X4);
+            Array.Resize(ref this.uvs3, size_X4);
             //Array.Resize(ref this.uvs4, size_X4);
 
             Array.Resize(ref this.colors32, size_X4);
@@ -326,6 +334,7 @@ namespace TMPro
 
             Array.Resize(ref this.uvs0, size_X4);
             Array.Resize(ref this.uvs2, size_X4);
+            Array.Resize(ref this.uvs3, size_X4);
             //Array.Resize(ref this.uvs4, size_X4);
 
             Array.Resize(ref this.colors32, size_X4);
@@ -359,6 +368,11 @@ namespace TMPro
                 this.tangents[2 + index_X4] = s_DefaultTangent;
                 this.tangents[3 + index_X4] = s_DefaultTangent;
 
+                //this.uv2_v4[0 + index_X4] = s_DefaultTangent;
+                //this.uv2_v4[1 + index_X4] = s_DefaultTangent;
+                //this.uv2_v4[2 + index_X4] = s_DefaultTangent;
+                //this.uv2_v4[3 + index_X4] = s_DefaultTangent;
+
                 if (isVolumetric)
                 {
                     this.normals[4 + index_X4] = s_DefaultNormal;
@@ -370,6 +384,11 @@ namespace TMPro
                     this.tangents[5 + index_X4] = s_DefaultTangent;
                     this.tangents[6 + index_X4] = s_DefaultTangent;
                     this.tangents[7 + index_X4] = s_DefaultTangent;
+
+                    //this.uv2_v4[4 + index_X4] = s_DefaultTangent;
+                    //this.uv2_v4[5 + index_X4] = s_DefaultTangent;
+                    //this.uv2_v4[6 + index_X4] = s_DefaultTangent;
+                    //this.uv2_v4[7 + index_X4] = s_DefaultTangent;
                 }
 
                 // Setup Triangles
@@ -625,6 +644,23 @@ namespace TMPro
             uvs = uvs2[dst_Index + 3];
             uvs2[dst_Index + 3] = uvs2[src_Index + 3];
             uvs2[src_Index + 3] = uvs;
+            // Swap custom TMP SDF payload (mirrors tangents for vertex-outline shaders)
+            Vector4 uvSd;
+            uvSd = uvs3[dst_Index + 0];
+            uvs3[dst_Index + 0] = uvs3[src_Index + 0];
+            uvs3[src_Index + 0] = uvSd;
+
+            uvSd = uvs3[dst_Index + 1];
+            uvs3[dst_Index + 1] = uvs3[src_Index + 1];
+            uvs3[src_Index + 1] = uvSd;
+
+            uvSd = uvs3[dst_Index + 2];
+            uvs3[dst_Index + 2] = uvs3[src_Index + 2];
+            uvs3[src_Index + 2] = uvSd;
+
+            uvSd = uvs3[dst_Index + 3];
+            uvs3[dst_Index + 3] = uvs3[src_Index + 3];
+            uvs3[src_Index + 3] = uvSd;
 
             // Vertex Colors
             Color32 color;
@@ -644,7 +680,6 @@ namespace TMPro
             colors32[dst_Index + 3] = colors32[src_Index + 3];
             colors32[src_Index + 3] = color;
         }
-
 
         //int Partition (int start, int end)
         //{
