@@ -1,188 +1,178 @@
-// using System;
-// using System.IO;
-// using System.Security.Cryptography;
-// using System.Text;
-// using UnityEngine;
+using System;
+using System.Buffers;
+using System.IO;
+using System.Security.Cryptography;
 
-// //解密流
-// public class AesDecryptorStream : FileStream
-// {
-//     private const int EncryptHeaderSize = 1024;
-//     private string bundleName;
-//     private byte[] key;
-//     private byte[] iv;
-//     private byte[] decryptedHeader;
-//     private int decryptedHeaderSize;
+//解密流
+public class AesDecryptorStream : FileStream
+{
+    private readonly byte[] Key;
+    private readonly byte[] Iv;
+    private readonly int HeaderSize;
+    private byte[] Header;
+    private int DecryptedHeaderSize;
 
+    public AesDecryptorStream(string path, FileMode mode, FileAccess access, FileShare share, byte[] key, byte[] iv, int headerSize = 1024) : base(path, mode, access, share)
+    {
+        Key = key;
+        Iv = iv;
+        HeaderSize = headerSize;
+        InitializeHeaderBuffer();
+    }
 
-//     public AesDecryptorStream(string path, FileMode mode, FileAccess access, FileShare share, string BundleName, byte[] KEY, byte[] IV) : base(path, mode, access, share)
-//     {
-//         bundleName = BundleName;
-//         key = KEY;
-//         iv = IV;
-//         InitializeHeaderBuffer();
-//     }
-//     public AesDecryptorStream(string path, FileMode mode) : base(path, mode) { }
+    public override int Read(byte[] array, int offset, int count)
+    {
+        long readStart = Position;
+        int readSize = base.Read(array, offset, count);
+        AesStreamOverlay.ApplyHeader(Header, DecryptedHeaderSize, readStart, readSize, array, offset);
+        return readSize;
+    }
 
+    private void InitializeHeaderBuffer()
+    {
+        long originalPosition = Position;
+        byte[] rentedEncrypted = null;
+        try
+        {
+            DecryptedHeaderSize = (int)Math.Min(HeaderSize, Length);
+            if (DecryptedHeaderSize <= 0)
+                return;
 
-//     protected override void Dispose(bool disposing)
-//     {
-//         base.Dispose(disposing);
-//     }
+            rentedEncrypted = ArrayPool<byte>.Shared.Rent(DecryptedHeaderSize);
+            Position = 0;
 
-//     public override int Read(byte[] array, int offset, int count)
-//     {
-//         long readStart = Position;
-//         int readSize = base.Read(array, offset, count);
-//         if (readSize <= 0 || decryptedHeaderSize <= 0)
-//             return readSize;
+            int totalRead = 0;
+            while (totalRead < DecryptedHeaderSize)
+            {
+                int read = base.Read(rentedEncrypted, totalRead, DecryptedHeaderSize - totalRead);
+                if (read <= 0)
+                    break;
+                totalRead += read;
+            }
 
-//         long readEnd = readStart + readSize;
-//         long overlapStart = Math.Max(0, readStart);
-//         long overlapEnd = Math.Min(decryptedHeaderSize, readEnd);
-//         if (overlapStart < overlapEnd)
-//         {
-//             int copySize = (int)(overlapEnd - overlapStart);
-//             int sourceOffset = (int)overlapStart;
-//             int targetOffset = offset + (int)(overlapStart - readStart);
-//             Buffer.BlockCopy(decryptedHeader, sourceOffset, array, targetOffset, copySize);
-//         }
-//         return readSize;
-//     }
+            DecryptedHeaderSize = totalRead;
+            if (DecryptedHeaderSize <= 0)
+                return;
 
-//     private void InitializeHeaderBuffer()
-//     {
-//         long originalPosition = Position;
-//         try
-//         {
-//             decryptedHeaderSize = (int)Math.Min(EncryptHeaderSize, Length);
-//             if (decryptedHeaderSize <= 0)
-//                 return;
+            if (DecryptedHeaderSize % 16 != 0)
+                throw new CryptographicException($"Encrypted header size is not AES block aligned. Bundle Size:{DecryptedHeaderSize}");
 
-//             byte[] encryptedHeader = new byte[decryptedHeaderSize];
-//             Position = 0;
+            Header = new byte[DecryptedHeaderSize];
+            using (var aes = Aes.Create())
+            {
+                aes.Mode = CipherMode.ECB;
+                aes.Padding = PaddingMode.None;
+                using (var cryptoTransform = aes.CreateDecryptor(Key, Iv))
+                {
+                    int bytesWritten = cryptoTransform.TransformBlock(rentedEncrypted, 0, DecryptedHeaderSize, Header, 0);
+                    cryptoTransform.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+                    if (bytesWritten != DecryptedHeaderSize)
+                        throw new CryptographicException($"Invalid decrypted bytes count. Bundle Written:{bytesWritten} Need:{DecryptedHeaderSize}");
+                }
+            }
+        }
+        finally
+        {
+            if (rentedEncrypted != null)
+                ArrayPool<byte>.Shared.Return(rentedEncrypted);
+            Position = originalPosition;
+        }
+    }
+}
 
-//             int totalRead = 0;
-//             while (totalRead < decryptedHeaderSize)
-//             {
-//                 int read = base.Read(encryptedHeader, totalRead, decryptedHeaderSize - totalRead);
-//                 if (read <= 0)
-//                     break;
-//                 totalRead += read;
-//             }
+//加密流
+public class AesEncryptorStream : FileStream
+{
+    private readonly byte[] Key;
+    private readonly byte[] Iv;
+    private readonly int HeaderSize;
+    private byte[] Header;
+    private int EncryptedHeaderSize;
 
-//             decryptedHeaderSize = totalRead;
-//             if (decryptedHeaderSize <= 0)
-//                 return;
+    public AesEncryptorStream(string path, FileMode mode, FileAccess access, FileShare share, byte[] key, byte[] iv, int headSize = 1024) : base(path, mode, access, share)
+    {
+        Key = key;
+        Iv = iv;
+        HeaderSize = headSize;
+        InitializeHeaderBuffer();
+    }
 
-//             if (decryptedHeaderSize % 16 != 0)
-//                 throw new CryptographicException($"Encrypted header size is not AES block aligned. Bundle:{bundleName} Size:{decryptedHeaderSize}");
+    public override int Read(byte[] array, int offset, int count)
+    {
+        long readStart = Position;
+        int readSize = base.Read(array, offset, count);
+        AesStreamOverlay.ApplyHeader(Header, EncryptedHeaderSize, readStart, readSize, array, offset);
+        return readSize;
+    }
 
-//             decryptedHeader = new byte[decryptedHeaderSize];
-//             using (var aes = Aes.Create())
-//             {
-//                 aes.Mode = CipherMode.ECB;
-//                 aes.Padding = PaddingMode.None;
-//                 using (var cryptoTransform = aes.CreateDecryptor(key, iv))
-//                 {
-//                     int bytesWritten = cryptoTransform.TransformBlock(encryptedHeader, 0, decryptedHeaderSize, decryptedHeader, 0);
-//                     cryptoTransform.TransformFinalBlock(new byte[0], 0, 0);
-//                     if (bytesWritten != decryptedHeaderSize)
-//                         throw new CryptographicException($"Invalid decrypted bytes count. Bundle:{bundleName} Written:{bytesWritten} Need:{decryptedHeaderSize}");
-//                 }
-//             }
-//         }
-//         finally
-//         {
-//             Position = originalPosition;
-//         }
-//     }
-// }
+    private void InitializeHeaderBuffer()
+    {
+        long originalPosition = Position;
+        byte[] rentedPlain = null;
+        try
+        {
+            EncryptedHeaderSize = (int)Math.Min(HeaderSize, Length);
+            if (EncryptedHeaderSize <= 0)
+                return;
 
-// //加密流
-// public class AesEncryptorStream : FileStream
-// {
-//     private const int EncryptHeaderSize = 1024;
-//     private string bundleName;
-//     private byte[] key;
-//     private byte[] iv;
-//     private byte[] encryptedHeader;
-//     private int encryptedHeaderSize;
+            rentedPlain = ArrayPool<byte>.Shared.Rent(EncryptedHeaderSize);
+            Position = 0;
 
-//     public AesEncryptorStream(string path, FileMode mode, FileAccess access, FileShare share, string BundleName, byte[] KEY, byte[] IV) : base(path, mode, access, share)
-//     {
-//         bundleName = BundleName;
-//         key = KEY;
-//         iv = IV;
-//         InitializeHeaderBuffer();
-//     }
-//     public AesEncryptorStream(string path, FileMode mode) : base(path, mode) { }
+            int totalRead = 0;
+            while (totalRead < EncryptedHeaderSize)
+            {
+                int read = base.Read(rentedPlain, totalRead, EncryptedHeaderSize - totalRead);
+                if (read <= 0)
+                    break;
+                totalRead += read;
+            }
 
-//     public override int Read(byte[] array, int offset, int count)
-//     {
-//         long readStart = Position;
-//         int readSize = base.Read(array, offset, count);
-//         if (readSize <= 0 || encryptedHeaderSize <= 0)
-//             return readSize;
+            EncryptedHeaderSize = totalRead;
+            if (EncryptedHeaderSize <= 0)
+                return;
 
-//         long readEnd = readStart + readSize;
-//         long overlapStart = Math.Max(0, readStart);
-//         long overlapEnd = Math.Min(encryptedHeaderSize, readEnd);
-//         if (overlapStart < overlapEnd)
-//         {
-//             int copySize = (int)(overlapEnd - overlapStart);
-//             int sourceOffset = (int)overlapStart;
-//             int targetOffset = offset + (int)(overlapStart - readStart);
-//             Buffer.BlockCopy(encryptedHeader, sourceOffset, array, targetOffset, copySize);
-//         }
-//         return readSize;
-//     }
+            if (EncryptedHeaderSize % 16 != 0)
+                throw new CryptographicException($"Original header size is not AES block aligned. Bundle Size:{EncryptedHeaderSize}");
 
-//     private void InitializeHeaderBuffer()
-//     {
-//         long originalPosition = Position;
-//         try
-//         {
-//             encryptedHeaderSize = (int)Math.Min(EncryptHeaderSize, Length);
-//             if (encryptedHeaderSize <= 0)
-//                 return;
+            Header = new byte[EncryptedHeaderSize];
+            using (var aes = Aes.Create())
+            {
+                aes.Mode = CipherMode.ECB;
+                aes.Padding = PaddingMode.None;
+                using (var cryptoTransform = aes.CreateEncryptor(Key, Iv))
+                {
+                    int bytesWritten = cryptoTransform.TransformBlock(rentedPlain, 0, EncryptedHeaderSize, Header, 0);
+                    cryptoTransform.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+                    if (bytesWritten != EncryptedHeaderSize)
+                        throw new CryptographicException($"Invalid encrypted bytes count. Bundle Written:{bytesWritten} Need:{EncryptedHeaderSize}");
+                }
+            }
+        }
+        finally
+        {
+            if (rentedPlain != null)
+                ArrayPool<byte>.Shared.Return(rentedPlain);
+            Position = originalPosition;
+        }
+    }
+}
 
-//             byte[] originalHeader = new byte[encryptedHeaderSize];
-//             Position = 0;
+/// <summary>
+/// 将 base.Read 得到的缓冲区中属于「文件头」区间的那一段替换为内存中的头副本。
+/// </summary>
+internal static class AesStreamOverlay
+{
+    internal static void ApplyHeader(byte[] header, int headerByteCount, long readStart, int readSize, byte[] buffer, int bufferOffset)
+    {
+        if (readSize <= 0 || headerByteCount <= 0 || header == null)
+            return;
+        // 常见热路径：连续读取已超过头部，无需 BlockCopy
+        if (readStart >= headerByteCount)
+            return;
 
-//             int totalRead = 0;
-//             while (totalRead < encryptedHeaderSize)
-//             {
-//                 int read = base.Read(originalHeader, totalRead, encryptedHeaderSize - totalRead);
-//                 if (read <= 0)
-//                     break;
-//                 totalRead += read;
-//             }
-
-//             encryptedHeaderSize = totalRead;
-//             if (encryptedHeaderSize <= 0)
-//                 return;
-
-//             if (encryptedHeaderSize % 16 != 0)
-//                 throw new CryptographicException($"Original header size is not AES block aligned. Bundle:{bundleName} Size:{encryptedHeaderSize}");
-
-//             encryptedHeader = new byte[encryptedHeaderSize];
-//             using (var aes = Aes.Create())
-//             {
-//                 aes.Mode = CipherMode.ECB;
-//                 aes.Padding = PaddingMode.None;
-//                 using (var cryptoTransform = aes.CreateEncryptor(key, iv))
-//                 {
-//                     int bytesWritten = cryptoTransform.TransformBlock(originalHeader, 0, encryptedHeaderSize, encryptedHeader, 0);
-//                     cryptoTransform.TransformFinalBlock(new byte[0], 0, 0);
-//                     if (bytesWritten != encryptedHeaderSize)
-//                         throw new CryptographicException($"Invalid encrypted bytes count. Bundle:{bundleName} Written:{bytesWritten} Need:{encryptedHeaderSize}");
-//                 }
-//             }
-//         }
-//         finally
-//         {
-//             Position = originalPosition;
-//         }
-//     }
-// }
+        long readEnd = readStart + readSize;
+        long overlapEnd = readEnd < headerByteCount ? readEnd : headerByteCount;
+        int copySize = (int)(overlapEnd - readStart);
+        Buffer.BlockCopy(header, (int)readStart, buffer, bufferOffset, copySize);
+    }
+}
