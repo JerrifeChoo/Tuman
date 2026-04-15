@@ -76,7 +76,7 @@ namespace TT
 
         private void Dispose()
         {
-            LuaEnv.Dispose();
+            LuaEnv?.Dispose();
             LuaEnv = null;
         }
 
