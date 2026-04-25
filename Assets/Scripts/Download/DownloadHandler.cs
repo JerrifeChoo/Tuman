@@ -1,15 +1,31 @@
+using System;
 using System.IO;
+using UnityEngine;
 using UnityEngine.Networking;
 
 namespace TT.Download
 {
-    public class DownloadHandler : DownloadHandlerScript
+    public sealed class DownloadHandler : DownloadHandlerScript
     {
-        private FileStream fileStream;
+        private const int FileStreamBufferSize = 256 * 1024;
 
-        public DownloadHandler(string filePath, long position)
+        private FileStream fileStream;
+        private Exception writeException;
+        private bool isDisposed;
+
+        public DownloadHandler(string filePath, long position) : base()
         {
-            fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Write, FileShare.ReadWrite);
+            InitializeFileStream(filePath, position);
+        }
+
+        public DownloadHandler(string filePath, long position, byte[] preallocatedBuffer):base(preallocatedBuffer)
+        {
+            InitializeFileStream(filePath, position);
+        }
+
+        private void InitializeFileStream(string filePath, long position)
+        {
+            fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Write, FileShare.ReadWrite, FileStreamBufferSize, FileOptions.SequentialScan);
             fileStream.Seek(position, SeekOrigin.Begin);
         }
 
@@ -20,25 +36,63 @@ namespace TT.Download
 
         protected override bool ReceiveData(byte[] data, int dataLength)
         {
-            if (data == null || dataLength == 0)
+            if (data == null || dataLength == 0 || dataLength > data.Length || fileStream == null || isDisposed || writeException != null)
                 return false;
-            fileStream.Write(data, 0, dataLength);
-            return true;
+
+            try
+            {
+                fileStream.Write(data, 0, dataLength);
+                //UnityEngine.Debug.LogError(dataLength);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                writeException = ex;
+                Debug.LogException(ex);
+                return false;
+            }
         }
 
         // 下载完成时调用
         protected override void CompleteContent()
         {
-            // 关闭文件流，确保所有数据都已写入磁盘
-            fileStream?.Close();
+            FlushAndDispose();
             base.CompleteContent();
+            UnityEngine.Debug.LogError("CompleteContent");
+        }
+
+        private void FlushAndDispose()
+        {
+            if (isDisposed)
+                return;
+
+            var stream = fileStream;
+            if (stream == null)
+                return;
+
+            try
+            {
+                if (writeException == null)
+                    stream.Flush();
+            }
+            catch (Exception ex)
+            {
+                writeException = ex;
+                Debug.LogException(ex);
+            }
+            finally
+            {
+                stream.Dispose();
+                fileStream = null;
+                isDisposed = true;
+            }
         }
 
         // 释放资源
         public override void Dispose()
         {
+            FlushAndDispose();
             base.Dispose();
-            fileStream?.Dispose();
         }
     }
 }

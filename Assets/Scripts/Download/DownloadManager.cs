@@ -1,6 +1,6 @@
 using Cysharp.Threading.Tasks;
 using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.IO;
 using System.Threading;
 using UnityEngine;
@@ -10,14 +10,22 @@ namespace TT.Download
 {
     public class DownloadManager : MonoBehaviour
     {
-        private Queue<DownloadTask> pendings = new Queue<DownloadTask>();
-        private readonly SemaphoreSlim semaphoreSlim = new SemaphoreSlim(5);
+        private const int MaxConcurrentDownloads = 5;
+        private const int DownloadBufferSize = 256 * 1024;
+
+        private ConcurrentQueue<DownloadTask> pendings = new ConcurrentQueue<DownloadTask>();
         private readonly int RetryCount = 3;
         private CancellationTokenSource test;
+        private int activeDownloads;
 
-        void Start()
+        private void Awake()
         {
-            StartDownload("http://127.0.0.1/UnitySetup64-2022.3.62f3.exe", Application.persistentDataPath + "/UnitySetup64-2022.3.62f3.exe", 3);
+            AppInstance.Instance.OnUpdate += UpdateDownload;
+        }
+
+        private void Start()
+        {
+            StartDownload("http://127.0.0.1/UnitySetup64-2022.3.62f3.exe", Application.persistentDataPath + "/UnitySetup64-2022.3.62f3.exe", 3).Forget();
         }
 
         public async UniTask StartDownload(string url, string path, int chunkCount = 1)
@@ -34,16 +42,11 @@ namespace TT.Download
 
         private async UniTask Download()
         {
-            if (pendings.Count == 0)
-                return;
-            await semaphoreSlim.WaitAsync();
-            if (pendings.Count == 0)
-                return;
-            var task = pendings.Dequeue();
-            if (task.CTS.IsCancellationRequested)
-                return;
             try
             {
+                if (!pendings.TryDequeue(out var task) || task.Equals(default(DownloadTask)) || task.CTS.IsCancellationRequested)
+                    return;
+
                 var totalSize = task.TotalSize != 0 ? task.TotalSize : await GetFileSize(task.Url, task.CTS.Token);
                 var tempFile = task.LocalPath;
                 var binFile = task.LocalPath + ".bin";
@@ -78,7 +81,8 @@ namespace TT.Download
                 {
                     //for (int i = 0; i < RetryCount; i++)
                     //{
-                        var request = UnityWebRequest.Get(task.Url);
+                    using (var request = UnityWebRequest.Get(task.Url))
+                    {
                         //分块下载
                         if (File.Exists(binFile))
                         {
@@ -88,13 +92,13 @@ namespace TT.Download
                             long rangeStart = chunkLoaded + task.ChunkIndex * (chunkLength + 1);
                             long rangeEnd;
                             if (task.ChunkIndex == fileBin.Downloads.Length - 1)
-                                rangeEnd = totalSize;
+                                rangeEnd = totalSize - 1;
                             else
                                 rangeEnd = rangeStart + chunkLength;
                             request.SetRequestHeader("Range", $"bytes={rangeStart}-{rangeEnd}");
-                            request.downloadHandler = new DownloadHandler(task.LocalPath, rangeStart);
-                            var asyncOp = request.SendWebRequest();
-                            asyncOp.ToUniTask(cancellationToken: task.CTS.Token).Forget();
+                            byte[] buffer = new byte[DownloadBufferSize];
+                            request.downloadHandler = new DownloadHandler(task.LocalPath, rangeStart, buffer);
+                            await request.SendWebRequest().ToUniTask(cancellationToken: task.CTS.Token);
                         }
                         else
                         {
@@ -110,11 +114,14 @@ namespace TT.Download
                             if (rangeStart == totalSize)
                                 return;
                             if (rangeStart > 0)
-                                request.SetRequestHeader("Range", $"bytes={rangeStart}-{totalSize}");
-                            request.downloadHandler = new DownloadHandler(task.LocalPath, rangeStart);
-                            var asyncOp = request.SendWebRequest();
-                            asyncOp.ToUniTask(cancellationToken: task.CTS.Token).Forget();
+                                request.SetRequestHeader("Range", $"bytes={rangeStart}-{totalSize - 1}");
+                            request.downloadHandler = new DownloadHandlerFile(task.LocalPath, true);
+                            await request.SendWebRequest().ToUniTask(cancellationToken: task.CTS.Token);
                         }
+
+                        if (request.result != UnityWebRequest.Result.Success)
+                            throw new Exception(request.error);
+                    }
                     //}
                 }
 
@@ -125,19 +132,24 @@ namespace TT.Download
             }
             finally
             {
-                semaphoreSlim.Release();
+                Interlocked.Decrement(ref activeDownloads);
             }
         }
 
-        private void Update()
+        private void UpdateDownload()
         {
             //Application.internetReachability == NetworkReachability.NotReachable
-            Download().Forget();
+            while (Volatile.Read(ref activeDownloads) < MaxConcurrentDownloads && pendings.TryPeek(out _))
+            {
+                Interlocked.Increment(ref activeDownloads);
+                Download().Forget();
+            }
         }
 
         private async UniTask<long> GetFileSize(string url, CancellationToken token)
         {
             for (var i = 0; i < RetryCount; i++)
+            {
                 using (var request = UnityWebRequest.Head(url))
                 {
                     await request.SendWebRequest().ToUniTask(cancellationToken: token);
@@ -145,6 +157,8 @@ namespace TT.Download
                         throw new Exception(request.error);
                     return long.Parse(request.GetResponseHeader("Content-Length"));
                 }
+            }
+
             throw new Exception("Timeout");
         }
 
@@ -168,6 +182,8 @@ namespace TT.Download
 
         private void OnDestroy()
         {
+            if (AppInstance.Instance != null)
+                AppInstance.Instance.OnUpdate -= UpdateDownload;
             test?.Cancel();
             test?.Dispose();
         }
