@@ -1,6 +1,7 @@
 using Cysharp.Threading.Tasks;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using UnityEngine;
@@ -14,12 +15,14 @@ namespace TT.Download
         private const int DownloadBufferSize = 256 * 1024;
 
         private ConcurrentQueue<DownloadTask> pendings = new ConcurrentQueue<DownloadTask>();
+        private List<CancellationTokenSource> taskCTS = new List<CancellationTokenSource>();
         private readonly int RetryCount = 3;
-        private CancellationTokenSource test;
         private int activeDownloads;
+        private CancellationToken lifecycleToken;
 
         private void Awake()
         {
+            lifecycleToken = this.GetCancellationTokenOnDestroy();
             AppInstance.Instance.OnUpdate += UpdateDownload;
         }
 
@@ -30,23 +33,24 @@ namespace TT.Download
 
         public async UniTask StartDownload(string url, string path, int chunkCount = 1)
         {
-            test = new CancellationTokenSource();
+            var downloadCTS = new CancellationTokenSource();
+            var linkedCTS = CancellationTokenSource.CreateLinkedTokenSource(downloadCTS.Token, lifecycleToken);
+            taskCTS.Add(linkedCTS);
             pendings.Enqueue(new DownloadTask
             {
                 Url = url,
                 LocalPath = path,
                 ChunkCount = chunkCount,
-                CTS = test
+                CTS = linkedCTS
             });
         }
 
         private async UniTask Download()
         {
+            if (!pendings.TryDequeue(out var task) || task.Equals(default(DownloadTask)) || task.CTS.IsCancellationRequested)
+                return;
             try
             {
-                if (!pendings.TryDequeue(out var task) || task.Equals(default(DownloadTask)) || task.CTS.IsCancellationRequested)
-                    return;
-
                 var totalSize = task.TotalSize != 0 ? task.TotalSize : await GetFileSize(task.Url, task.CTS.Token);
                 var tempFile = task.LocalPath;
                 var binFile = task.LocalPath + ".bin";
@@ -98,6 +102,7 @@ namespace TT.Download
                             request.SetRequestHeader("Range", $"bytes={rangeStart}-{rangeEnd}");
                             byte[] buffer = new byte[DownloadBufferSize];
                             request.downloadHandler = new DownloadHandler(task.LocalPath, rangeStart, buffer);
+                            request.disposeDownloadHandlerOnDispose = true;
                             await request.SendWebRequest().ToUniTask(cancellationToken: task.CTS.Token);
                         }
                         else
@@ -112,26 +117,35 @@ namespace TT.Download
                             else
                                 rangeStart = new FileInfo(tempFile).Length;
                             if (rangeStart == totalSize)
+                            {
+                                task.CTS?.Dispose();
+                                task.CTS = null;
                                 return;
+                            }
                             if (rangeStart > 0)
                                 request.SetRequestHeader("Range", $"bytes={rangeStart}-{totalSize - 1}");
                             request.downloadHandler = new DownloadHandlerFile(task.LocalPath, true);
+                            request.disposeDownloadHandlerOnDispose = true;
                             await request.SendWebRequest().ToUniTask(cancellationToken: task.CTS.Token);
                         }
-
                         if (request.result != UnityWebRequest.Result.Success)
                             throw new Exception(request.error);
                     }
                     //}
+                    task.CTS?.Dispose();
+                    taskCTS.Remove(task.CTS);
                 }
-
             }
             catch (Exception ex)
             {
-                Debug.LogException(ex);
+                //task.CTS.Cancel();
+                //task.CTS.Dispose();
+                //taskCTS.Remove(task.CTS);
+                //Debug.LogException(ex);
             }
             finally
             {
+                //task.CTS?.Dispose();
                 Interlocked.Decrement(ref activeDownloads);
             }
         }
@@ -184,8 +198,12 @@ namespace TT.Download
         {
             if (AppInstance.Instance != null)
                 AppInstance.Instance.OnUpdate -= UpdateDownload;
-            test?.Cancel();
-            test?.Dispose();
+            foreach (var cts in taskCTS)
+            {
+                cts.Cancel();
+                cts.Dispose();
+            }
+            taskCTS.Clear();
         }
     }
 }

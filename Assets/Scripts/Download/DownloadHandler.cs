@@ -7,16 +7,11 @@ namespace TT.Download
 {
     public sealed class DownloadHandler : DownloadHandlerScript
     {
-        private const int FileStreamBufferSize = 256 * 1024;
+        private const int FileStreamBufferSize = 128 * 1024;
 
         private FileStream fileStream;
         private Exception writeException;
         private bool isDisposed;
-
-        public DownloadHandler(string filePath, long position) : base()
-        {
-            InitializeFileStream(filePath, position);
-        }
 
         public DownloadHandler(string filePath, long position, byte[] preallocatedBuffer):base(preallocatedBuffer)
         {
@@ -42,13 +37,13 @@ namespace TT.Download
             try
             {
                 fileStream.Write(data, 0, dataLength);
-                //UnityEngine.Debug.LogError(dataLength);
+                //Debug.LogError(dataLength);
                 return true;
             }
             catch (Exception ex)
             {
                 writeException = ex;
-                Debug.LogException(ex);
+                //Debug.LogException(ex);
                 return false;
             }
         }
@@ -58,18 +53,16 @@ namespace TT.Download
         {
             FlushAndDispose();
             base.CompleteContent();
-            UnityEngine.Debug.LogError("CompleteContent");
+            //Debug.LogError("CompleteContent");
         }
 
         private void FlushAndDispose()
         {
             if (isDisposed)
                 return;
-
             var stream = fileStream;
             if (stream == null)
                 return;
-
             try
             {
                 if (writeException == null)
@@ -78,7 +71,7 @@ namespace TT.Download
             catch (Exception ex)
             {
                 writeException = ex;
-                Debug.LogException(ex);
+                //Debug.LogException(ex);
             }
             finally
             {
