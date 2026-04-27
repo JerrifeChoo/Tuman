@@ -11,11 +11,13 @@ namespace TT.Download
 {
     public class DownloadManager : MonoBehaviour
     {
+        private const int TimeOut = 30;
         private const int MaxConcurrentDownloads = 5;
         private const int DownloadBufferSize = 256 * 1024;
 
         private ConcurrentQueue<DownloadTask> pendings = new ConcurrentQueue<DownloadTask>();
         private List<CancellationTokenSource> taskCTS = new List<CancellationTokenSource>();
+        private Dictionary<string, FileBin> fileBins = new Dictionary<string, FileBin>();
         private readonly int RetryCount = 3;
         private int activeDownloads;
         private CancellationToken lifecycleToken;
@@ -28,10 +30,10 @@ namespace TT.Download
 
         private void Start()
         {
-            StartDownload("http://127.0.0.1/UnitySetup64-2022.3.62f3.exe", Application.persistentDataPath + "/UnitySetup64-2022.3.62f3.exe", 3).Forget();
+            StartDownload("http://127.0.0.1/UnitySetup64-2022.3.62f3.exe", Application.persistentDataPath + "/UnitySetup64-2022.3.62f3.exe", 1).Forget();
         }
 
-        public async UniTask StartDownload(string url, string path, int chunkCount = 1)
+        public async UniTask<CancellationTokenSource> StartDownload(string url, string path, int chunkCount = 1)
         {
             var downloadCTS = new CancellationTokenSource();
             var linkedCTS = CancellationTokenSource.CreateLinkedTokenSource(downloadCTS.Token, lifecycleToken);
@@ -43,6 +45,7 @@ namespace TT.Download
                 ChunkCount = chunkCount,
                 CTS = linkedCTS
             });
+            return linkedCTS;
         }
 
         private async UniTask Download()
@@ -83,61 +86,14 @@ namespace TT.Download
                 }
                 else
                 {
-                    //for (int i = 0; i < RetryCount; i++)
-                    //{
-                    using (var request = UnityWebRequest.Get(task.Url))
-                    {
-                        //分块下载
-                        if (File.Exists(binFile))
-                        {
-                            var fileBin = GetFileBin(binFile);
-                            long chunkLength = totalSize / fileBin.Downloads.Length;
-                            long chunkLoaded = fileBin.Downloads[task.ChunkIndex];
-                            long rangeStart = chunkLoaded + task.ChunkIndex * (chunkLength + 1);
-                            long rangeEnd;
-                            if (task.ChunkIndex == fileBin.Downloads.Length - 1)
-                                rangeEnd = totalSize - 1;
-                            else
-                                rangeEnd = rangeStart + chunkLength;
-                            request.SetRequestHeader("Range", $"bytes={rangeStart}-{rangeEnd}");
-                            byte[] buffer = new byte[DownloadBufferSize];
-                            request.downloadHandler = new DownloadHandler(task.LocalPath, rangeStart, buffer);
-                            request.disposeDownloadHandlerOnDispose = true;
-                            await request.SendWebRequest().ToUniTask(cancellationToken: task.CTS.Token);
-                        }
-                        else
-                        {
-                            long rangeStart = 0;
-                            if (!File.Exists(tempFile))
-                            {
-                                var file = File.Create(tempFile);
-                                file.Close();
-                                file.Dispose();
-                            }
-                            else
-                                rangeStart = new FileInfo(tempFile).Length;
-                            if (rangeStart == totalSize)
-                            {
-                                task.CTS?.Dispose();
-                                task.CTS = null;
-                                return;
-                            }
-                            if (rangeStart > 0)
-                                request.SetRequestHeader("Range", $"bytes={rangeStart}-{totalSize - 1}");
-                            request.downloadHandler = new DownloadHandlerFile(task.LocalPath, true);
-                            request.disposeDownloadHandlerOnDispose = true;
-                            await request.SendWebRequest().ToUniTask(cancellationToken: task.CTS.Token);
-                        }
-                        if (request.result != UnityWebRequest.Result.Success)
-                            throw new Exception(request.error);
-                    }
-                    //}
+                    await DownloadTask(task, tempFile, totalSize, binFile);
                     task.CTS?.Dispose();
                     taskCTS.Remove(task.CTS);
                 }
             }
             catch (Exception ex)
             {
+                ///TODO 判断类型，是否属于用户取消等
                 //task.CTS.Cancel();
                 //task.CTS.Dispose();
                 //taskCTS.Remove(task.CTS);
@@ -148,6 +104,65 @@ namespace TT.Download
                 //task.CTS?.Dispose();
                 Interlocked.Decrement(ref activeDownloads);
             }
+        }
+
+        private async UniTask DownloadTask(DownloadTask task, string localPath, long size, string binPath)
+        {
+            if (!File.Exists(localPath))
+            {
+                var file = File.Create(localPath);
+                file.Close();
+                file.Dispose();
+            }
+            var downloadByChunk = File.Exists(binPath);
+            long rangeStart = 0;
+            long rangeEnd = 0;
+            if (downloadByChunk)
+            {
+                var fileBin = GetFileBin(binPath);
+                long chunkLength = size / fileBin.Downloads.Length;
+                long chunkLoaded = fileBin.Downloads[task.ChunkIndex];
+                rangeStart = chunkLoaded + task.ChunkIndex * (chunkLength + 1);
+                if (task.ChunkIndex == fileBin.Downloads.Length - 1)
+                    rangeEnd = size - 1;
+                else
+                    rangeEnd = rangeStart + chunkLength;
+            }
+            else
+            {
+                rangeStart = new FileInfo(localPath).Length;
+                rangeEnd = size - 1;
+            }
+            for (int i = 0; i < RetryCount; i++)
+            {
+                using (var request = UnityWebRequest.Get(task.Url))
+                {
+                    request.timeout = TimeOut;
+                    //分块下载
+                    if (downloadByChunk)
+                    {
+                        request.SetRequestHeader("Range", $"bytes={rangeStart}-{rangeEnd}");
+                        byte[] buffer = new byte[DownloadBufferSize];
+                        ///TODO 需要处理下载过程中的fileBin更新写入以及下载完成时的清理等
+                        request.downloadHandler = new DownloadHandler(task.LocalPath, rangeStart, buffer);
+                    }
+                    else
+                    {
+                        if (rangeStart == size)
+                        {
+                            return;
+                        }
+                        if (rangeStart > 0)
+                            request.SetRequestHeader("Range", $"bytes={rangeStart}-{size - 1}");
+                        request.downloadHandler = new DownloadHandlerFile(task.LocalPath, true);
+                    }
+                    request.disposeDownloadHandlerOnDispose = true;
+                    await request.SendWebRequest().ToUniTask(cancellationToken: task.CTS.Token);
+                    if (request.result == UnityWebRequest.Result.Success)
+                        return;
+                }
+            }
+            throw new Exception("Timeout");
         }
 
         private void UpdateDownload()
@@ -166,16 +181,16 @@ namespace TT.Download
             {
                 using (var request = UnityWebRequest.Head(url))
                 {
+                    request.timeout = TimeOut;
                     await request.SendWebRequest().ToUniTask(cancellationToken: token);
-                    if (request.result != UnityWebRequest.Result.Success)
-                        throw new Exception(request.error);
-                    return long.Parse(request.GetResponseHeader("Content-Length"));
+                    if (request.result == UnityWebRequest.Result.Success)
+                        return long.Parse(request.GetResponseHeader("Content-Length"));
                 }
             }
-
             throw new Exception("Timeout");
         }
 
+        ///TODO 添加缓存
         private FileBin GetFileBin(string path)
         {
             using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
