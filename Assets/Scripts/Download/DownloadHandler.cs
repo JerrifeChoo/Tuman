@@ -10,11 +10,13 @@ namespace TT.Download
         private const int FileStreamBufferSize = 128 * 1024;
 
         private FileStream fileStream;
+        private readonly Action<int> onDataWritten;
         private Exception writeException;
         private bool isDisposed;
 
-        public DownloadHandler(string filePath, long position, byte[] preallocatedBuffer):base(preallocatedBuffer)
+        public DownloadHandler(string filePath, long position, byte[] preallocatedBuffer, Action<int> onDataWritten = null) : base(preallocatedBuffer)
         {
+            this.onDataWritten = onDataWritten;
             InitializeFileStream(filePath, position);
         }
 
@@ -37,6 +39,7 @@ namespace TT.Download
             try
             {
                 fileStream.Write(data, 0, dataLength);
+                onDataWritten?.Invoke(dataLength);
                 //Debug.LogError(dataLength);
                 return true;
             }

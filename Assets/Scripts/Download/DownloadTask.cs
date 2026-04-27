@@ -1,14 +1,36 @@
 using System.Threading;
 
 namespace TT.Download {
+    public enum DownloadChunkMode
+    {
+        RandomWriteSingleFile,
+        SeparatePartFiles
+    }
+
     public struct DownloadTask
     {
         public string Url { get; set; }
         public string LocalPath { get; set; }
         public int ChunkCount { get; set; }
         public int ChunkIndex { get; set; }
+        public int TotalChunks { get; set; }
+        public DownloadChunkMode ChunkMode { get; set; }
         public long TotalSize { get; set; }
-        public CancellationTokenSource CTS;
+        public DownloadState State;
+    }
+
+    public sealed class DownloadState
+    {
+        public CancellationTokenSource CTS { get; }
+        public int RefCount { get; set; }
+        public bool Finished { get; set; }
+        public bool IsMerging { get; set; }
+
+        public DownloadState(CancellationTokenSource cts)
+        {
+            CTS = cts;
+            RefCount = 1;
+        }
     }
 
     //public enum DownloadStatus
