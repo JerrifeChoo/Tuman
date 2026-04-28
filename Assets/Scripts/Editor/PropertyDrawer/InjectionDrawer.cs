@@ -19,10 +19,10 @@ namespace TT.Editor
             position.width = position.width / 3 - 10;
             injection.Key = EditorGUI.TextArea(position, injection.Key);
             position.x += position.width + 10;
-            var (selections, objs) = GetComponnetTypes(injection.Value);
+            var (selections, objs) = GetTypes(injection.Value);
             var selected = EditorGUI.Popup(position, 0, selections);
             position.x += position.width + 10;
-            var temp = EditorGUI.ObjectField(position, injection.Value, typeof(GameObject), true);
+            var temp = EditorGUI.ObjectField(position, injection.Value, typeof(UnityEngine.Object), true);
             if (EditorGUI.EndChangeCheck())
             {
                 if (temp != injection.Value)
@@ -33,7 +33,7 @@ namespace TT.Editor
             }
         }
 
-        public (string[], UnityEngine.Object[] objs) GetComponnetTypes(UnityEngine.Object obj)
+        public (string[], UnityEngine.Object[] objs) GetTypes(UnityEngine.Object obj)
         {
             string[] selected;
             UnityEngine.Object[] objs = null;
@@ -41,33 +41,36 @@ namespace TT.Editor
                 selected = new string[] { "None" };
             else
             {
-                var components = obj.GetComponents<Component>();
                 selected = new string[] { obj.GetType().Name };
-                int total = 1;
-                GameObject gameObject = null;
-                if (obj.GetType().Name != gotype)
-                {
-                    total += 1;
-                    gameObject = ((Component)obj).gameObject;
-                }
                 objs = new UnityEngine.Object[] { obj };
-                total += components.Length;
-                if (total > 1)
+                if (obj is GameObject || obj is Component)
                 {
-                    Array.Resize(ref selected, total);
-                    Array.Resize(ref objs, total);
-                    int index = 1;
-                    if (gameObject != null)
+                    var components = obj.GetComponents<Component>();
+                    int total = 1;
+                    GameObject gameObject = null;
+                    if (obj.GetType().Name != gotype)
                     {
-                        selected[index] = gotype;
-                        objs[index] = gameObject;
-                        index++;
+                        total += 1;
+                        gameObject = ((Component)obj).gameObject;
                     }
-                    foreach (var comp in components)
+                    total += components.Length;
+                    if (total > 1)
                     {
-                        selected[index] = comp.GetType().Name;
-                        objs[index] = comp;
-                        index++;
+                        Array.Resize(ref selected, total);
+                        Array.Resize(ref objs, total);
+                        int index = 1;
+                        if (gameObject != null)
+                        {
+                            selected[index] = gotype;
+                            objs[index] = gameObject;
+                            index++;
+                        }
+                        foreach (var comp in components)
+                        {
+                            selected[index] = comp.GetType().Name;
+                            objs[index] = comp;
+                            index++;
+                        }
                     }
                 }
             }
