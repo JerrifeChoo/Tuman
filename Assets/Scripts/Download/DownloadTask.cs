@@ -7,6 +7,22 @@ namespace TT.Download {
         SeparatePartFiles
     }
 
+    public struct DownloadRequest
+    {
+        public string Url;
+        public string LocalPath;
+        public int ChunkCount;
+        public DownloadChunkMode ChunkMode;
+
+        public DownloadRequest(string url, string localPath, int chunkCount = 1, DownloadChunkMode chunkMode = DownloadChunkMode.SeparatePartFiles)
+        {
+            Url = url;
+            LocalPath = localPath;
+            ChunkCount = chunkCount;
+            ChunkMode = chunkMode;
+        }
+    }
+
     public struct DownloadTask
     {
         public string Url { get; set; }

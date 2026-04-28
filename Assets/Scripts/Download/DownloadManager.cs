@@ -15,11 +15,14 @@ namespace TT.Download
         private const int MaxConcurrentDownloads = 5;
         private const int DownloadBufferSize = 256 * 1024;
         private const int RetryCount = 3;
+        private const float NetworkCheckInterval = 1f;
 
         private ConcurrentQueue<DownloadTask> pendings = new ConcurrentQueue<DownloadTask>();
         private List<DownloadState> downloadStates = new List<DownloadState>();
         private ProgressStore progressStore = new ProgressStore();
         private int activeDownloads;
+        private float nextNetworkCheckTime;
+        private bool networkReachable = true;
         private CancellationToken lifecycleToken;
 
         private void Awake()
@@ -33,22 +36,54 @@ namespace TT.Download
             StartDownload("http://127.0.0.1/UnitySetup64-2022.3.62f3.exe", Application.persistentDataPath + "/UnitySetup64-2022.3.62f3.exe", 3).Forget();
         }
 
-        public UniTask<CancellationTokenSource> StartDownload(string url, string path, int chunkCount = 1, DownloadChunkMode chunkMode = DownloadChunkMode.SeparatePartFiles)
+        public UniTask<CancellationTokenSource> StartDownload(string url, string path, int chunkCount = 1, DownloadChunkMode chunkMode = DownloadChunkMode.RandomWriteSingleFile)
         {
-            var downloadCTS = new CancellationTokenSource();
-            var linkedCTS = CancellationTokenSource.CreateLinkedTokenSource(downloadCTS.Token, lifecycleToken);
+            var linkedCTS = CancellationTokenSource.CreateLinkedTokenSource(lifecycleToken);
             var state = new DownloadState(linkedCTS);
+            EnqueueDownload(new DownloadRequest(url, path, chunkCount, chunkMode), state);
+            return UniTask.FromResult(linkedCTS);
+        }
+
+        public UniTask<CancellationTokenSource> StartDownload(DownloadRequest[] requests)
+        {
+            if (requests == null)
+                throw new ArgumentNullException(nameof(requests));
+
+            if (requests.Length == 0)
+                throw new ArgumentException("Downloads require at least one request.", nameof(requests));
+
+            for (var i = 0; i < requests.Length; i++)
+                ValidateDownloadRequest(requests[i]);
+
+            var linkedCTS = CancellationTokenSource.CreateLinkedTokenSource(lifecycleToken);
+            for (var i = 0; i < requests.Length; i++)
+                EnqueueDownload(requests[i], new DownloadState(linkedCTS));
+
+            return UniTask.FromResult(linkedCTS);
+        }
+
+        private void EnqueueDownload(DownloadRequest request, DownloadState state)
+        {
+            ValidateDownloadRequest(request);
+            var chunkCount = Math.Max(1, request.ChunkCount);
             downloadStates.Add(state);
             pendings.Enqueue(new DownloadTask
             {
-                Url = url,
-                LocalPath = path,
+                Url = request.Url,
+                LocalPath = request.LocalPath,
                 ChunkCount = chunkCount,
                 TotalChunks = chunkCount,
-                ChunkMode = chunkMode,
+                ChunkMode = request.ChunkMode,
                 State = state
             });
-            return UniTask.FromResult(linkedCTS);
+        }
+
+        private void ValidateDownloadRequest(DownloadRequest request)
+        {
+            if (string.IsNullOrEmpty(request.Url))
+                throw new ArgumentException("Download url cannot be empty.", nameof(request));
+            if (string.IsNullOrEmpty(request.LocalPath))
+                throw new ArgumentException("Download local path cannot be empty.", nameof(request));
         }
 
         private async UniTask Download()
@@ -288,8 +323,7 @@ namespace TT.Download
             {
                 request.SetRequestHeader("Range", $"bytes={range.Start}-{range.End}");
                 byte[] buffer = new byte[DownloadBufferSize];
-                request.downloadHandler = new DownloadHandler(task.LocalPath, range.Start, buffer,
-                    bytesWritten => progressStore.AddDownloadedBytes(binPath, task.ChunkIndex, bytesWritten, range.ChunkLength));
+                request.downloadHandler = new DownloadHandler(task.LocalPath, range.Start, buffer, progressStore, binPath, task.ChunkIndex, range.ChunkLength);
                 return;
             }
 
@@ -300,12 +334,25 @@ namespace TT.Download
 
         private void UpdateDownload()
         {
-            //Application.internetReachability == NetworkReachability.NotReachable
+            if (!IsNetworkReachable())
+                return;
+
             while (Volatile.Read(ref activeDownloads) < MaxConcurrentDownloads && pendings.TryPeek(out _))
             {
                 Interlocked.Increment(ref activeDownloads);
                 Download().Forget();
             }
+        }
+
+        private bool IsNetworkReachable()
+        {
+            var now = Time.unscaledTime;
+            if (now < nextNetworkCheckTime)
+                return networkReachable;
+
+            nextNetworkCheckTime = now + NetworkCheckInterval;
+            networkReachable = Application.internetReachability != NetworkReachability.NotReachable;
+            return networkReachable;
         }
 
         private async UniTask<long> GetFileSize(string url, CancellationToken token)
@@ -649,18 +696,44 @@ namespace TT.Download
                 return;
 
             downloadStates.Remove(state);
-            state.CTS.Dispose();
+            if (!HasDownloadStateWithToken(state.CTS))
+                state.CTS.Dispose();
+        }
+
+        private bool HasDownloadStateWithToken(CancellationTokenSource cts)
+        {
+            for (var i = 0; i < downloadStates.Count; i++)
+            {
+                if (downloadStates[i].CTS == cts)
+                    return true;
+            }
+
+            return false;
+        }
+
+        private bool HasPreviousDownloadStateWithToken(int index)
+        {
+            var cts = downloadStates[index].CTS;
+            for (var i = 0; i < index; i++)
+            {
+                if (downloadStates[i].CTS == cts)
+                    return true;
+            }
+
+            return false;
         }
 
         private void OnDestroy()
         {
             if (AppInstance.Instance != null)
                 AppInstance.Instance.OnUpdate -= UpdateDownload;
-            var states = new List<DownloadState>(downloadStates);
-            foreach (var state in states)
+            for (var i = 0; i < downloadStates.Count; i++)
             {
-                state.CTS.Cancel();
-                state.CTS.Dispose();
+                if (HasPreviousDownloadStateWithToken(i))
+                    continue;
+
+                downloadStates[i].CTS.Cancel();
+                downloadStates[i].CTS.Dispose();
             }
             progressStore.FlushAll();
             downloadStates.Clear();

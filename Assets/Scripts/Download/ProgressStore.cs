@@ -6,6 +6,9 @@ namespace TT.Download
 {
     public sealed class ProgressStore
     {
+        [ThreadStatic]
+        private static byte[] flushBuffer;
+
         private readonly ConcurrentDictionary<string, FileBin> fileBins = new ConcurrentDictionary<string, FileBin>();
 
         public FileBin Get(string path)
@@ -46,12 +49,11 @@ namespace TT.Download
 
             using (var fs = new FileStream(path, FileMode.OpenOrCreate, FileAccess.Write, FileShare.ReadWrite))
             {
-                fs.SetLength(fileBin.Downloads.Length * 8);
-                for (var i = 0; i < fileBin.Downloads.Length; i++)
-                {
-                    var bytes = BitConverter.GetBytes(fileBin.Downloads[i]);
-                    fs.Write(bytes, 0, bytes.Length);
-                }
+                var byteCount = fileBin.Downloads.Length * 8;
+                fs.SetLength(byteCount);
+                var buffer = GetFlushBuffer(byteCount);
+                Buffer.BlockCopy(fileBin.Downloads, 0, buffer, 0, byteCount);
+                fs.Write(buffer, 0, byteCount);
             }
         }
 
@@ -89,6 +91,13 @@ namespace TT.Download
                 }
                 return fileBin;
             }
+        }
+
+        private static byte[] GetFlushBuffer(int byteCount)
+        {
+            if (flushBuffer == null || flushBuffer.Length < byteCount)
+                flushBuffer = new byte[byteCount];
+            return flushBuffer;
         }
 
         private bool TryDeleteFile(string path)

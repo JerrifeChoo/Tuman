@@ -10,13 +10,19 @@ namespace TT.Download
         private const int FileStreamBufferSize = 128 * 1024;
 
         private FileStream fileStream;
-        private readonly Action<int> onDataWritten;
+        private readonly ProgressStore progressStore;
+        private readonly string progressPath;
+        private readonly int progressChunkIndex;
+        private readonly long progressChunkLength;
         private Exception writeException;
         private bool isDisposed;
 
-        public DownloadHandler(string filePath, long position, byte[] preallocatedBuffer, Action<int> onDataWritten = null) : base(preallocatedBuffer)
+        public DownloadHandler(string filePath, long position, byte[] preallocatedBuffer, ProgressStore progressStore, string progressPath, int progressChunkIndex, long progressChunkLength) : base(preallocatedBuffer)
         {
-            this.onDataWritten = onDataWritten;
+            this.progressStore = progressStore;
+            this.progressPath = progressPath;
+            this.progressChunkIndex = progressChunkIndex;
+            this.progressChunkLength = progressChunkLength;
             InitializeFileStream(filePath, position);
         }
 
@@ -39,7 +45,7 @@ namespace TT.Download
             try
             {
                 fileStream.Write(data, 0, dataLength);
-                onDataWritten?.Invoke(dataLength);
+                progressStore.AddDownloadedBytes(progressPath, progressChunkIndex, dataLength, progressChunkLength);
                 //Debug.LogError(dataLength);
                 return true;
             }
