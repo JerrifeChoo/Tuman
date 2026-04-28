@@ -33,7 +33,7 @@ namespace TT.Download
 
         private void Start()
         {
-            StartDownload("http://127.0.0.1/UnitySetup64-2022.3.62f3.exe", Application.persistentDataPath + "/UnitySetup64-2022.3.62f3.exe", 3).Forget();
+            //StartDownload("http://127.0.0.1/UnitySetup64-2022.3.62f3.exe", Application.persistentDataPath + "/UnitySetup64-2022.3.62f3.exe", 3).Forget();
         }
 
         public UniTask<CancellationTokenSource> StartDownload(string url, string path, int chunkCount = 1, DownloadChunkMode chunkMode = DownloadChunkMode.RandomWriteSingleFile)

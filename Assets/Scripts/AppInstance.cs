@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using TT.Download;
 using UnityEngine;
 using XLua;
 
@@ -19,6 +20,13 @@ namespace TT
         {
             get
             {
+                if (instance == null)
+                {
+                    var gameObject = new GameObject("AppInstance");
+                    gameObject.AddComponent<AppInstance>();
+                    gameObject.AddComponent<DownloadManager>();
+                    DontDestroyOnLoad(gameObject);
+                }
                 return instance;
             }
         }
