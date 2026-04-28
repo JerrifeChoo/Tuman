@@ -14,14 +14,11 @@ namespace TT.Download
         private const int TimeOut = 30;
         private const int MaxConcurrentDownloads = 5;
         private const int DownloadBufferSize = 256 * 1024;
+        private const int RetryCount = 3;
 
         private ConcurrentQueue<DownloadTask> pendings = new ConcurrentQueue<DownloadTask>();
         private List<DownloadState> downloadStates = new List<DownloadState>();
-        private ConcurrentDictionary<string, FileBin> fileBins = new ConcurrentDictionary<string, FileBin>();
-        private ConcurrentDictionary<string, byte> dirtyFileBins = new ConcurrentDictionary<string, byte>();
-        private ConcurrentDictionary<string, long> mergeOffsets = new ConcurrentDictionary<string, long>();
-        private ConcurrentDictionary<string, byte> dirtyMergeOffsets = new ConcurrentDictionary<string, byte>();
-        private readonly int RetryCount = 3;
+        private ProgressStore progressStore = new ProgressStore();
         private int activeDownloads;
         private CancellationToken lifecycleToken;
 
@@ -68,32 +65,11 @@ namespace TT.Download
                 }
                 var totalSize = task.TotalSize != 0 ? task.TotalSize : await GetFileSize(task.Url, task.State.CTS.Token);
                 var tempFile = task.LocalPath;
-                var binFile = task.LocalPath + ".bin";
+                var binFile = GetProgressPath(task.LocalPath);
                 if (task.ChunkCount > 1)
                 {
-                    if (task.ChunkMode == DownloadChunkMode.RandomWriteSingleFile && (!File.Exists(tempFile) || new FileInfo(tempFile).Length != totalSize))
-                    {
-                        CreateFileWithLength(tempFile, totalSize);
-                    }
-                    if (task.ChunkMode == DownloadChunkMode.RandomWriteSingleFile && (!File.Exists(binFile) || new FileInfo(binFile).Length != task.ChunkCount * 8))
-                    {
-                        fileBins.TryRemove(binFile, out _);
-                        dirtyFileBins.TryRemove(binFile, out _);
-                        CreateFileWithLength(binFile, task.ChunkCount * 8);
-                    }
-                    AddTaskReferences(task.State, task.ChunkCount);
-                    for (var i = 0; i < task.ChunkCount; i++)
-                        pendings.Enqueue(new DownloadTask
-                        {
-                            Url = task.Url,
-                            LocalPath = task.LocalPath,
-                            ChunkCount = 1,
-                            TotalSize = totalSize,
-                            TotalChunks = task.ChunkCount,
-                            ChunkMode = task.ChunkMode,
-                            State = task.State,
-                            ChunkIndex = i,
-                        });
+                    EnsureDownloadProgressMatchesMode(task.LocalPath, binFile, task.ChunkMode, task.ChunkCount);
+                    QueueChunkTasks(task, totalSize, tempFile, binFile);
                 }
                 else
                 {
@@ -103,22 +79,19 @@ namespace TT.Download
             }
             catch (OperationCanceledException)
             {
-                FlushFileBin(task.LocalPath + ".bin");
-                FlushMergeOffset(task.LocalPath);
+                progressStore.Flush(GetProgressPath(task.LocalPath));
                 MarkTaskFinished(task.State);
             }
             catch (Exception ex)
             {
                 if (task.State != null && task.State.CTS.IsCancellationRequested)
                 {
-                    FlushFileBin(task.LocalPath + ".bin");
-                    FlushMergeOffset(task.LocalPath);
+                    progressStore.Flush(GetProgressPath(task.LocalPath));
                     MarkTaskFinished(task.State);
                     return;
                 }
 
-                FlushFileBin(task.LocalPath + ".bin");
-                FlushMergeOffset(task.LocalPath);
+                progressStore.Flush(GetProgressPath(task.LocalPath));
                 task.State?.CTS.Cancel();
                 MarkTaskFinished(task.State);
                 Debug.LogException(ex);
@@ -130,6 +103,76 @@ namespace TT.Download
             }
         }
 
+        private void EnsureDownloadProgressMatchesMode(string localPath, string binPath, DownloadChunkMode chunkMode, int chunkCount)
+        {
+            if (chunkMode == DownloadChunkMode.SeparatePartFiles)
+            {
+                DeleteRandomWriteProgress(localPath, binPath);
+                return;
+            }
+
+            DeletePartProgress(localPath, chunkCount);
+        }
+
+        private void DeleteRandomWriteProgress(string localPath, string binPath)
+        {
+            if (!File.Exists(binPath))
+                return;
+
+            if (new FileInfo(binPath).Length == 8)
+            {
+                if (!File.Exists(GetPartPath(localPath, 0)))
+                    progressStore.DeleteFile(binPath);
+                return;
+            }
+
+            progressStore.DeleteFile(binPath);
+            if (File.Exists(localPath))
+                TryDeleteFile(localPath);
+        }
+
+        private void DeletePartProgress(string localPath, int chunkCount)
+        {
+            for (var i = 0; i < chunkCount; i++)
+                DeletePartFile(localPath, i);
+
+            var progressPath = GetProgressPath(localPath);
+            if (File.Exists(progressPath) && new FileInfo(progressPath).Length == 8)
+                progressStore.DeleteFile(progressPath);
+        }
+
+        private void QueueChunkTasks(DownloadTask task, long totalSize, string localPath, string binPath)
+        {
+            if (task.ChunkMode == DownloadChunkMode.RandomWriteSingleFile)
+                PrepareRandomWriteFiles(localPath, binPath, totalSize, task.ChunkCount);
+
+            AddTaskReferences(task.State, task.ChunkCount);
+            for (var i = 0; i < task.ChunkCount; i++)
+                pendings.Enqueue(new DownloadTask
+                {
+                    Url = task.Url,
+                    LocalPath = task.LocalPath,
+                    ChunkCount = 1,
+                    TotalSize = totalSize,
+                    TotalChunks = task.ChunkCount,
+                    ChunkMode = task.ChunkMode,
+                    State = task.State,
+                    ChunkIndex = i,
+                });
+        }
+
+        private void PrepareRandomWriteFiles(string localPath, string binPath, long totalSize, int chunkCount)
+        {
+            if (!File.Exists(localPath) || new FileInfo(localPath).Length != totalSize)
+                CreateFileWithLength(localPath, totalSize);
+
+            if (File.Exists(binPath) && new FileInfo(binPath).Length == chunkCount * 8)
+                return;
+
+            progressStore.Remove(binPath);
+            CreateFileWithLength(binPath, chunkCount * 8);
+        }
+
         private async UniTask<bool> DownloadTask(DownloadTask task, string localPath, long size, string binPath)
         {
             var downloadByPart = task.ChunkMode == DownloadChunkMode.SeparatePartFiles && task.TotalChunks > 1;
@@ -138,101 +181,121 @@ namespace TT.Download
                 CreateFileWithLength(localPath, 0);
             }
             var downloadByChunk = !downloadByPart && File.Exists(binPath);
+            Exception lastException = null;
             for (int i = 0; i < RetryCount; i++)
             {
-                long rangeStart;
-                long rangeEnd;
-                long chunkLength = 0;
-                string downloadPath = localPath;
-                var requiresPartialResponse = false;
                 if (downloadByPart)
                 {
-                    if (IsPartMergeStarted(localPath, size, task.TotalChunks))
+                    if (IsPartMergeStarted(localPath))
                         return await TryCompletePartDownload(localPath, size, task.TotalChunks, task.State);
+                }
 
-                    GetChunkRange(size, task.TotalChunks, task.ChunkIndex, out var chunkStart, out var chunkEnd);
-                    chunkLength = chunkEnd - chunkStart + 1;
-                    if (chunkLength <= 0)
+                var range = GetDownloadRange(task, localPath, binPath, size, downloadByPart, downloadByChunk);
+                if (downloadByPart)
+                {
+                    if (range.ChunkLength <= 0 || range.IsComplete)
                         return await TryCompletePartDownload(localPath, size, task.TotalChunks, task.State);
-
-                    downloadPath = GetPartPath(localPath, task.ChunkIndex);
-                    var chunkLoaded = GetPartFileLength(downloadPath, chunkLength);
-                    if (chunkLoaded >= chunkLength)
-                        return await TryCompletePartDownload(localPath, size, task.TotalChunks, task.State);
-
-                    rangeStart = chunkStart + chunkLoaded;
-                    rangeEnd = chunkEnd;
-                    requiresPartialResponse = true;
                 }
                 else if (downloadByChunk)
                 {
-                    var fileBin = GetFileBin(binPath);
-                    GetChunkRange(size, fileBin.Downloads.Length, task.ChunkIndex, out var chunkStart, out var chunkEnd);
-                    chunkLength = chunkEnd - chunkStart + 1;
-                    if (chunkLength <= 0)
+                    if (range.ChunkLength <= 0 || range.IsComplete)
                         return TryCompleteChunkDownload(localPath, binPath, size);
-
-                    var chunkLoaded = Math.Min(fileBin.Downloads[task.ChunkIndex], chunkLength);
-                    if (chunkLoaded >= chunkLength)
-                        return TryCompleteChunkDownload(localPath, binPath, size);
-
-                    rangeStart = chunkStart + chunkLoaded;
-                    rangeEnd = chunkEnd;
-                    requiresPartialResponse = true;
                 }
                 else
                 {
-                    rangeStart = new FileInfo(localPath).Length;
-                    rangeEnd = size - 1;
-                    if (rangeStart >= size)
+                    if (range.Start >= size)
                         return true;
-                    requiresPartialResponse = rangeStart > 0;
                 }
 
-                var requestSucceeded = false;
-                using (var request = UnityWebRequest.Get(task.Url))
+                try
                 {
-                    request.timeout = TimeOut;
-                    //分块下载
-                    if (downloadByPart)
-                    {
-                        request.SetRequestHeader("Range", $"bytes={rangeStart}-{rangeEnd}");
-                        request.downloadHandler = new DownloadHandlerFile(downloadPath, true);
-                    }
-                    else if (downloadByChunk)
-                    {
-                        request.SetRequestHeader("Range", $"bytes={rangeStart}-{rangeEnd}");
-                        byte[] buffer = new byte[DownloadBufferSize];
-                        dirtyFileBins[binPath] = 1;
-                        request.downloadHandler = new DownloadHandler(task.LocalPath, rangeStart, buffer,
-                            bytesWritten => UpdateFileBin(binPath, task.ChunkIndex, bytesWritten, chunkLength));
-                    }
-                    else
-                    {
-                        if (rangeStart > 0)
-                            request.SetRequestHeader("Range", $"bytes={rangeStart}-{size - 1}");
-                        request.downloadHandler = new DownloadHandlerFile(task.LocalPath, true);
-                    }
-                    request.disposeDownloadHandlerOnDispose = true;
-                    await request.SendWebRequest().ToUniTask(cancellationToken: task.State.CTS.Token);
-                    if (request.result == UnityWebRequest.Result.Success)
-                    {
-                        if (requiresPartialResponse && request.responseCode != 206)
-                            throw new Exception($"Range request failed, response code: {request.responseCode}");
-                        requestSucceeded = true;
-                    }
+                    await SendDownloadRequest(task, binPath, range, downloadByPart, downloadByChunk);
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    lastException = ex;
+                    continue;
                 }
 
-                if (requestSucceeded)
-                {
-                    if (downloadByPart)
-                        return await TryCompletePartDownload(localPath, size, task.TotalChunks, task.State);
-                    if (downloadByChunk)
-                        return TryCompleteChunkDownload(localPath, binPath, size);
-                    return true;
-                }
+                if (downloadByPart)
+                    return await TryCompletePartDownload(localPath, size, task.TotalChunks, task.State);
+                if (downloadByChunk)
+                    return TryCompleteChunkDownload(localPath, binPath, size);
+                return true;
             }
-            throw new Exception("Timeout");
+            throw new Exception("Download failed after retries", lastException);
+        }
+
+        private DownloadRange GetDownloadRange(DownloadTask task, string localPath, string binPath, long size, bool downloadByPart, bool downloadByChunk)
+        {
+            if (downloadByPart)
+            {
+                GetChunkRange(size, task.TotalChunks, task.ChunkIndex, out var chunkStart, out var chunkEnd);
+                var chunkLength = chunkEnd - chunkStart + 1;
+                var downloadPath = GetPartPath(localPath, task.ChunkIndex);
+                if (chunkLength <= 0)
+                    return new DownloadRange(downloadPath, chunkEnd + 1, chunkEnd, chunkLength, true);
+
+                var chunkLoaded = Math.Min(GetPartFileLength(downloadPath, chunkLength), chunkLength);
+                return new DownloadRange(downloadPath, chunkStart + chunkLoaded, chunkEnd, chunkLength, true);
+            }
+
+            if (downloadByChunk)
+            {
+                var fileBin = progressStore.Get(binPath);
+                GetChunkRange(size, fileBin.Downloads.Length, task.ChunkIndex, out var chunkStart, out var chunkEnd);
+                var chunkLength = chunkEnd - chunkStart + 1;
+                if (chunkLength <= 0)
+                    return new DownloadRange(localPath, chunkEnd + 1, chunkEnd, chunkLength, true);
+
+                var chunkLoaded = Math.Min(fileBin.Downloads[task.ChunkIndex], chunkLength);
+                return new DownloadRange(localPath, chunkStart + chunkLoaded, chunkEnd, chunkLength, true);
+            }
+
+            var rangeStart = new FileInfo(localPath).Length;
+            return new DownloadRange(localPath, rangeStart, size - 1, 0, rangeStart > 0);
+        }
+
+        private async UniTask SendDownloadRequest(DownloadTask task, string binPath, DownloadRange range, bool downloadByPart, bool downloadByChunk)
+        {
+            using (var request = UnityWebRequest.Get(task.Url))
+            {
+                request.timeout = TimeOut;
+                ConfigureDownloadHandler(request, task, binPath, range, downloadByPart, downloadByChunk);
+                request.disposeDownloadHandlerOnDispose = true;
+                await request.SendWebRequest().ToUniTask(cancellationToken: task.State.CTS.Token);
+                if (request.result != UnityWebRequest.Result.Success)
+                    throw new Exception($"Download request failed: {request.error}");
+                if (range.RequiresPartialResponse && request.responseCode != 206)
+                    throw new Exception($"Range request failed, response code: {request.responseCode}");
+            }
+        }
+
+        private void ConfigureDownloadHandler(UnityWebRequest request, DownloadTask task, string binPath, DownloadRange range, bool downloadByPart, bool downloadByChunk)
+        {
+            if (downloadByPart)
+            {
+                request.SetRequestHeader("Range", $"bytes={range.Start}-{range.End}");
+                request.downloadHandler = new DownloadHandlerFile(range.Path, true);
+                return;
+            }
+
+            if (downloadByChunk)
+            {
+                request.SetRequestHeader("Range", $"bytes={range.Start}-{range.End}");
+                byte[] buffer = new byte[DownloadBufferSize];
+                request.downloadHandler = new DownloadHandler(task.LocalPath, range.Start, buffer,
+                    bytesWritten => progressStore.AddDownloadedBytes(binPath, task.ChunkIndex, bytesWritten, range.ChunkLength));
+                return;
+            }
+
+            if (range.Start > 0)
+                request.SetRequestHeader("Range", $"bytes={range.Start}-{range.End}");
+            request.downloadHandler = new DownloadHandlerFile(task.LocalPath, true);
         }
 
         private void UpdateDownload()
@@ -247,27 +310,36 @@ namespace TT.Download
 
         private async UniTask<long> GetFileSize(string url, CancellationToken token)
         {
+            Exception lastException = null;
             for (var i = 0; i < RetryCount; i++)
             {
-                using (var request = UnityWebRequest.Head(url))
+                try
                 {
-                    request.timeout = TimeOut;
-                    await request.SendWebRequest().ToUniTask(cancellationToken: token);
-                    if (request.result == UnityWebRequest.Result.Success)
+                    using (var request = UnityWebRequest.Head(url))
                     {
-                        var contentLength = request.GetResponseHeader("Content-Length");
-                        if (long.TryParse(contentLength, out var fileSize))
-                            return fileSize;
-                        throw new Exception("Missing Content-Length");
+                        request.timeout = TimeOut;
+                        await request.SendWebRequest().ToUniTask(cancellationToken: token);
+                        if (request.result == UnityWebRequest.Result.Success)
+                        {
+                            var contentLength = request.GetResponseHeader("Content-Length");
+                            if (long.TryParse(contentLength, out var fileSize))
+                                return fileSize;
+                            throw new Exception("Missing Content-Length");
+                        }
+
+                        lastException = new Exception($"File size request failed: {request.error}");
                     }
                 }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    lastException = ex;
+                }
             }
-            throw new Exception("Timeout");
-        }
-
-        private FileBin GetFileBin(string path)
-        {
-            return fileBins.GetOrAdd(path, ReadFileBin);
+            throw new Exception("File size request failed after retries", lastException);
         }
 
         private void CreateFileWithLength(string path, long length)
@@ -278,43 +350,12 @@ namespace TT.Download
             }
         }
 
-        private FileBin ReadFileBin(string path)
-        {
-            using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-            {
-                byte[] bytes = new byte[fs.Length];
-                fs.Read(bytes, 0, bytes.Length);
-                FileBin fileBin = new FileBin();
-                fileBin.Downloads = new long[bytes.Length / 8];
-                var index = 0;
-                for (int i = 0; i < bytes.Length; i = i + 8)
-                {
-                    fileBin.Downloads[index] = BitConverter.ToInt64(bytes, i);
-                    index++;
-                }
-                return fileBin;
-            }
-        }
-
-        private void UpdateFileBin(string path, int chunkIndex, int bytesWritten, long chunkLength)
-        {
-            if (bytesWritten <= 0)
-                return;
-
-            var fileBin = GetFileBin(path);
-            var downloaded = Math.Min(fileBin.Downloads[chunkIndex] + bytesWritten, chunkLength);
-            if (downloaded == fileBin.Downloads[chunkIndex])
-                return;
-
-            fileBin.Downloads[chunkIndex] = downloaded;
-        }
-
         private bool TryCompleteChunkDownload(string localPath, string binPath, long totalSize)
         {
             if (!File.Exists(binPath))
                 return File.Exists(localPath) && new FileInfo(localPath).Length >= totalSize;
 
-            var fileBin = GetFileBin(binPath);
+            var fileBin = progressStore.Get(binPath);
             for (var i = 0; i < fileBin.Downloads.Length; i++)
             {
                 GetChunkRange(totalSize, fileBin.Downloads.Length, i, out var chunkStart, out var chunkEnd);
@@ -324,15 +365,14 @@ namespace TT.Download
 
             if (File.Exists(localPath) && new FileInfo(localPath).Length >= totalSize)
             {
-                fileBins.TryRemove(binPath, out _);
-                dirtyFileBins.TryRemove(binPath, out _);
+                progressStore.Remove(binPath);
                 if (File.Exists(binPath))
                     TryDeleteFile(binPath);
                 return true;
             }
             else
             {
-                FlushFileBin(binPath);
+                progressStore.Flush(binPath);
                 return false;
             }
         }
@@ -407,7 +447,7 @@ namespace TT.Download
                             UpdateMergeOffset(localPath, mergedBytes);
                         }
                     }
-                    FlushMergeOffset(localPath);
+                    progressStore.Flush(GetProgressPath(localPath));
                     DeletePartFile(localPath, i);
                     remainingMergedBytes = 0;
                 }
@@ -418,9 +458,7 @@ namespace TT.Download
             if (File.Exists(localPath))
                 TryDeleteFile(localPath);
             File.Move(part0Path, localPath);
-            mergeOffsets.TryRemove(localPath, out _);
-            dirtyMergeOffsets.TryRemove(localPath, out _);
-            DeleteMergeFile(localPath);
+            DeleteProgressFile(localPath);
         }
 
         private long GetPart0FileLength(string localPath, long chunkLength, long totalSize)
@@ -434,7 +472,7 @@ namespace TT.Download
                 return length;
 
             if (TryDeleteFile(part0Path))
-                DeleteMergeFile(localPath);
+                DeleteProgressFile(localPath);
             return 0;
         }
 
@@ -463,9 +501,10 @@ namespace TT.Download
             return true;
         }
 
-        private bool IsPartMergeStarted(string localPath, long totalSize, int chunkCount)
+        private bool IsPartMergeStarted(string localPath)
         {
-           return File.Exists(GetMergePath(localPath));
+            var progressPath = GetProgressPath(localPath);
+            return File.Exists(progressPath) && new FileInfo(progressPath).Length == 8 && File.Exists(GetPartPath(localPath, 0));
         }
 
         private long GetMergedBytes(string localPath, long totalSize, int chunkCount)
@@ -499,55 +538,39 @@ namespace TT.Download
             return $"{localPath}.part{chunkIndex}";
         }
 
-        private string GetMergePath(string localPath)
+        private string GetProgressPath(string localPath)
         {
-            return localPath + ".merge";
+            return localPath + ".bin";
         }
 
         private long ReadMergeOffset(string localPath)
         {
-            if (mergeOffsets.TryGetValue(localPath, out var cachedOffset))
-                return cachedOffset;
+            var progressPath = GetProgressPath(localPath);
+            if (progressStore.TryGet(progressPath, out var cachedBin))
+            {
+                if (cachedBin.Downloads.Length == 1)
+                    return cachedBin.Downloads[0];
 
-            var mergePath = GetMergePath(localPath);
-            if (!File.Exists(mergePath))
+                progressStore.Remove(progressPath);
+            }
+
+            if (!File.Exists(progressPath) || new FileInfo(progressPath).Length != 8)
                 return 0;
 
-            using (var fs = new FileStream(mergePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-            {
-                if (fs.Length < 8)
-                    return 0;
-
-                var bytes = new byte[8];
-                fs.Read(bytes, 0, bytes.Length);
-                var offset = BitConverter.ToInt64(bytes, 0);
-                mergeOffsets[localPath] = offset;
-                return offset;
-            }
+            var fileBin = progressStore.Get(progressPath);
+            return fileBin.Downloads.Length == 1 ? fileBin.Downloads[0] : 0;
         }
 
         private void UpdateMergeOffset(string localPath, long offset)
         {
-            mergeOffsets[localPath] = offset;
-            dirtyMergeOffsets[localPath] = 1;
-        }
-
-        private void FlushMergeOffset(string localPath)
-        {
-            if (string.IsNullOrEmpty(localPath) || !dirtyMergeOffsets.TryRemove(localPath, out _) || !mergeOffsets.TryGetValue(localPath, out var offset))
-                return;
-
-            using (var fs = new FileStream(GetMergePath(localPath), FileMode.Create, FileAccess.Write, FileShare.ReadWrite))
+            var progressPath = GetProgressPath(localPath);
+            if (!progressStore.TryGet(progressPath, out var fileBin) || fileBin.Downloads.Length != 1)
             {
-                var bytes = BitConverter.GetBytes(offset);
-                fs.Write(bytes, 0, bytes.Length);
+                fileBin = new FileBin { Downloads = new long[1] };
+                progressStore.Set(progressPath, fileBin);
             }
-        }
 
-        private void FlushMergeOffsets()
-        {
-            foreach (var path in dirtyMergeOffsets.Keys)
-                FlushMergeOffset(path);
+            fileBin.Downloads[0] = offset;
         }
 
         private void DeletePartFiles(string localPath, int chunkCount)
@@ -555,11 +578,7 @@ namespace TT.Download
             for (var i = 0; i < chunkCount; i++)
                 DeletePartFile(localPath, i);
 
-            var mergePath = GetMergePath(localPath);
-            if (File.Exists(mergePath))
-                TryDeleteFile(mergePath);
-            mergeOffsets.TryRemove(localPath, out _);
-            dirtyMergeOffsets.TryRemove(localPath, out _);
+            DeleteProgressFile(localPath);
         }
 
         private void DeletePartFile(string localPath, int chunkIndex)
@@ -569,14 +588,13 @@ namespace TT.Download
                 TryDeleteFile(partPath);
         }
 
-        private void DeleteMergeFile(string localPath)
+        private void DeleteProgressFile(string localPath)
         {
             if (string.IsNullOrEmpty(localPath))
                 return;
 
-            var mergePath = GetMergePath(localPath);
-            if (File.Exists(mergePath))
-                TryDeleteFile(mergePath);
+            var progressPath = GetProgressPath(localPath);
+            progressStore.DeleteFile(progressPath);
         }
 
         private bool TryDeleteFile(string path)
@@ -597,28 +615,6 @@ namespace TT.Download
             {
                 return false;
             }
-        }
-
-        private void FlushFileBin(string path)
-        {
-            if (string.IsNullOrEmpty(path) || !dirtyFileBins.TryRemove(path, out _) || !fileBins.TryGetValue(path, out var fileBin))
-                return;
-
-            using (var fs = new FileStream(path, FileMode.OpenOrCreate, FileAccess.Write, FileShare.ReadWrite))
-            {
-                fs.SetLength(fileBin.Downloads.Length * 8);
-                for (var i = 0; i < fileBin.Downloads.Length; i++)
-                {
-                    var bytes = BitConverter.GetBytes(fileBin.Downloads[i]);
-                    fs.Write(bytes, 0, bytes.Length);
-                }
-            }
-        }
-
-        private void FlushFileBins()
-        {
-            foreach (var path in dirtyFileBins.Keys)
-                FlushFileBin(path);
         }
 
         private void GetChunkRange(long totalSize, int chunkCount, int chunkIndex, out long start, out long end)
@@ -664,18 +660,11 @@ namespace TT.Download
             foreach (var state in states)
             {
                 state.CTS.Cancel();
-            }
-            FlushFileBins();
-            FlushMergeOffsets();
-            foreach (var state in states)
-            {
                 state.CTS.Dispose();
             }
+            progressStore.FlushAll();
             downloadStates.Clear();
-            fileBins.Clear();
-            dirtyFileBins.Clear();
-            mergeOffsets.Clear();
-            dirtyMergeOffsets.Clear();
+            progressStore.Clear();
         }
     }
 }
