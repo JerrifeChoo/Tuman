@@ -1462,6 +1462,12 @@ namespace XLua.CSObjectWrap
             translator.DelayWrapLoader(typeof(UnityEngine.UI.Toggle.ToggleEvent), UnityEngineUIToggleToggleEventWrap.__Register);
         
         
+            translator.DelayWrapLoader(typeof(AesDecryptorStream), AesDecryptorStreamWrap.__Register);
+        
+        
+            translator.DelayWrapLoader(typeof(AesEncryptorStream), AesEncryptorStreamWrap.__Register);
+        
+        
             translator.DelayWrapLoader(typeof(TimerTestBehaviour), TimerTestBehaviourWrap.__Register);
         
         
@@ -1469,6 +1475,9 @@ namespace XLua.CSObjectWrap
         
         
             translator.DelayWrapLoader(typeof(Readme.Section), ReadmeSectionWrap.__Register);
+        
+        
+            translator.DelayWrapLoader(typeof(Smol.Rapidhash.Rapidhash3), SmolRapidhashRapidhash3Wrap.__Register);
         
         
             translator.DelayWrapLoader(typeof(TT.AppInstance), TTAppInstanceWrap.__Register);
@@ -1489,10 +1498,37 @@ namespace XLua.CSObjectWrap
             translator.DelayWrapLoader(typeof(TT.Timer.TimerBridge), TTTimerTimerBridgeWrap.__Register);
         
         
+            translator.DelayWrapLoader(typeof(TT.Lua.Env), TTLuaEnvWrap.__Register);
+        
+        
             translator.DelayWrapLoader(typeof(TT.Lua.Injection), TTLuaInjectionWrap.__Register);
         
         
             translator.DelayWrapLoader(typeof(TT.Lua.LuaBehaviour), TTLuaLuaBehaviourWrap.__Register);
+        
+        
+            translator.DelayWrapLoader(typeof(TT.Download.DownloadHandler), TTDownloadDownloadHandlerWrap.__Register);
+        
+        
+            translator.DelayWrapLoader(typeof(TT.Download.DownloadManager), TTDownloadDownloadManagerWrap.__Register);
+        
+        
+            translator.DelayWrapLoader(typeof(TT.Download.DownloadRange), TTDownloadDownloadRangeWrap.__Register);
+        
+        
+            translator.DelayWrapLoader(typeof(TT.Download.DownloadRequest), TTDownloadDownloadRequestWrap.__Register);
+        
+        
+            translator.DelayWrapLoader(typeof(TT.Download.DownloadTask), TTDownloadDownloadTaskWrap.__Register);
+        
+        
+            translator.DelayWrapLoader(typeof(TT.Download.DownloadState), TTDownloadDownloadStateWrap.__Register);
+        
+        
+            translator.DelayWrapLoader(typeof(TT.Download.FileBin), TTDownloadFileBinWrap.__Register);
+        
+        
+            translator.DelayWrapLoader(typeof(TT.Download.ProgressStore), TTDownloadProgressStoreWrap.__Register);
         
         
         

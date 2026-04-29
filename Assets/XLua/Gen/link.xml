@@ -591,17 +591,29 @@
 	</assembly>
 
 	<assembly fullname="Assembly-CSharp">
-	    <type fullname="TimerTestBehaviour" preserve="all"/>
+	    <type fullname="AesDecryptorStream" preserve="all"/>
+		<type fullname="AesEncryptorStream" preserve="all"/>
+		<type fullname="TimerTestBehaviour" preserve="all"/>
 		<type fullname="Readme" preserve="all"/>
 		<type fullname="Readme+Section" preserve="all"/>
+		<type fullname="Smol.Rapidhash.Rapidhash3" preserve="all"/>
 		<type fullname="TT.AppInstance" preserve="all"/>
 		<type fullname="TT.Timer.Timer" preserve="all"/>
 		<type fullname="TT.Timer.CallbackTag" preserve="all"/>
 		<type fullname="TT.Timer.DestroyTag" preserve="all"/>
 		<type fullname="TT.Timer.HandleSystem" preserve="all"/>
 		<type fullname="TT.Timer.TimerBridge" preserve="all"/>
+		<type fullname="TT.Lua.Env" preserve="all"/>
 		<type fullname="TT.Lua.Injection" preserve="all"/>
 		<type fullname="TT.Lua.LuaBehaviour" preserve="all"/>
+		<type fullname="TT.Download.DownloadHandler" preserve="all"/>
+		<type fullname="TT.Download.DownloadManager" preserve="all"/>
+		<type fullname="TT.Download.DownloadRange" preserve="all"/>
+		<type fullname="TT.Download.DownloadRequest" preserve="all"/>
+		<type fullname="TT.Download.DownloadTask" preserve="all"/>
+		<type fullname="TT.Download.DownloadState" preserve="all"/>
+		<type fullname="TT.Download.FileBin" preserve="all"/>
+		<type fullname="TT.Download.ProgressStore" preserve="all"/>
 		
 	</assembly>
 

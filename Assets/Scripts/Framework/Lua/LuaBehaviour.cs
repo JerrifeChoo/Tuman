@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using TT.Attr;
 using UnityEngine;
 using XLua;
@@ -22,7 +21,7 @@ namespace TT.Lua
         private Action onLuaUpdate;
         private Action onLuaLateUpdate;
 
-        private LuaEnv luaEnv;
+        private Env env;
 
         private void Awake()
         {
@@ -35,16 +34,17 @@ namespace TT.Lua
         {
             if (string.IsNullOrEmpty(luaFile))
                 return;
-            luaEnv = AppInstance.Instance.LuaEnv;
-            luaEnv.DoString($"require '{luaFile}'", luaFile);
-            luaEnv.Global.Get("package", out LuaTable luapackage);
+            env = AppInstance.Instance.Env;
+            env.AddRef();
+            env.DoString($"require '{luaFile}'", luaFile);
+            env.Global.Get("package", out LuaTable luapackage);
             luapackage.Get("loaded", out LuaTable luaLoaded);
             luapackage.Dispose();
             luaLoaded.Get(luaFile, out luaInstance);
             luaLoaded.Dispose();
-            using (LuaTable meta = luaEnv.NewTable())
+            using (LuaTable meta = env.NewTable())
             {
-                meta.Set("__index", luaEnv.Global);
+                meta.Set("__index", env.Global);
                 luaInstance.SetMetaTable(meta);
             }
             luaInstance.Get("New", out LuaFunction luaConstructor);
@@ -115,11 +115,11 @@ namespace TT.Lua
             luaOnDestroy = null;
             luaInstance?.Dispose();
             luaInstance = null;
+            env?.Clean();
         }
 
         private void OnDestroy()
         {
-            if (luaInstance == null || luaEnv == null || luaEnv.rawL == IntPtr.Zero) return;
             luaOnDestroy?.Call(luaInstance);
             Dispose();
         }

@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using TT.Download;
+using TT.Lua;
 using UnityEngine;
 using XLua;
 
@@ -13,7 +14,7 @@ namespace TT
         public Action OnUpdate;
         [CSharpCallLua]
         public Action OnLateUpdate;
-        public LuaEnv LuaEnv;
+        public Env Env;
 
         [LuaCallCSharp]
         public static AppInstance Instance
@@ -66,10 +67,10 @@ namespace TT
 
         private void Initialized()
         {
-            LuaEnv = new LuaEnv();
-            LuaEnv.AddLoader(LoadLua);
-            LuaEnv.DoString($"require 'Main'", "Main");
-            DontDestroyOnLoad(gameObject);
+            Env = new Env();
+            Env.AddLoader(LoadLua);
+            Env.DoString($"require 'Main'", "Main");
+            Env.AddRef();
         }
 
         private void Update()
@@ -84,8 +85,8 @@ namespace TT
 
         private void Dispose()
         {
-            LuaEnv?.Dispose();
-            LuaEnv = null;
+            Env?.Clean();
+            Env = null;
         }
 
         private void OnDestroy()
