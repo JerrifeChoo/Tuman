@@ -16,8 +16,8 @@ namespace TT.UI
         public int OrderDepth = 0;
         [NonSerialized]
         public Canvas[] canvas;
-
-        public bool FullScreen;
+        //同层级只展示此一个界面
+        public bool OnlyVisibleOne;
 
         private void Awake()
         {
