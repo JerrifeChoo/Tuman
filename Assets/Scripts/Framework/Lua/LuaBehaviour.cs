@@ -99,13 +99,16 @@ namespace TT.Lua
             luaAwake = null;
             luaStart?.Dispose();
             luaStart = null;
-            if (onLuaUpdate != null)
+            if (AppInstance.Instance != null)
             {
-                AppInstance.Instance.OnUpdate -= onLuaUpdate;
-            }
-            if (onLuaLateUpdate != null)
-            {
-                AppInstance.Instance.OnLateUpdate -= onLuaLateUpdate;
+                if (onLuaUpdate != null)
+                {
+                    AppInstance.Instance.OnUpdate -= onLuaUpdate;
+                }
+                if (onLuaLateUpdate != null)
+                {
+                    AppInstance.Instance.OnLateUpdate -= onLuaLateUpdate;
+                }
             }
             luaUpdate?.Dispose();
             luaUpdate = null;

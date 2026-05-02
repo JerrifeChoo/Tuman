@@ -41,3 +41,18 @@ TagManager:
   - name: Default
     uniqueID: 0
     locked: 0
+  - name: View
+    uniqueID: 1090177239
+    locked: 0
+  - name: Pop
+    uniqueID: 620227473
+    locked: 0
+  - name: Alert
+    uniqueID: 1564476841
+    locked: 0
+  - name: Tip
+    uniqueID: 690563857
+    locked: 0
+  - name: Top
+    uniqueID: 1421386739
+    locked: 0

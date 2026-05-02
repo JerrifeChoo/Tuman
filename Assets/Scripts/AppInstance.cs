@@ -14,6 +14,7 @@ namespace TT
         public Action OnUpdate;
         [CSharpCallLua]
         public Action OnLateUpdate;
+        private static bool disposed = false;
         public Env Env;
 
         [LuaCallCSharp]
@@ -21,7 +22,7 @@ namespace TT
         {
             get
             {
-                if (instance == null)
+                if (!disposed && instance == null)
                 {
                     var gameObject = new GameObject("AppInstance");
                     gameObject.AddComponent<AppInstance>();
@@ -85,6 +86,7 @@ namespace TT
 
         private void Dispose()
         {
+            disposed = true;
             Env?.Clean();
             Env = null;
         }
@@ -92,6 +94,7 @@ namespace TT
         private void OnDestroy()
         {
             Dispose();
+            instance = null;
         }
 
         private void OnApplicationQuit()
