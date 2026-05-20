@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using TT.Extensions;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -12,6 +13,7 @@ namespace TT.UI
         private List<GameObject> roots = new List<GameObject>();
         private Dictionary<int, int> sortingOrders = new Dictionary<int, int>();
         private Dictionary<int, List<View>> views = new Dictionary<int, List<View>>();
+        private int UILayer;
 
         public static UIManager Instance
         {
@@ -20,7 +22,7 @@ namespace TT.UI
                 if (instance == null)
                 {
                     var gameObject = new GameObject("UIManager");
-                    gameObject.AddComponent<UIManager>();
+                    instance = gameObject.AddComponent<UIManager>();
                     DontDestroyOnLoad(gameObject);
                 }
                 return instance;
@@ -30,6 +32,7 @@ namespace TT.UI
         private void Awake()
         {
             var layers = SortingLayer.layers;
+            UILayer = LayerMask.NameToLayer("UI");
             for (int i = 0; i < layers.Length; i++)
             {
                 if (layers[i].name != "Default")
@@ -90,13 +93,13 @@ namespace TT.UI
 
         private void ResetRecord()
         {
-            foreach (var kv in sortingOrders)
+            foreach (var key in sortingOrders.Keys.ToList())
             {
-                sortingOrders[kv.Key] = -1;
+                sortingOrders[key] = -1;
             }
-            foreach (var kv in views)
+            foreach (var key in views.Keys.ToList())
             {
-                views[kv.Key].Clear();
+                views[key].Clear();
             }
         }
 
@@ -108,9 +111,11 @@ namespace TT.UI
             scene.GetRootGameObjects(roots);
             foreach (var root in roots)
             {
-                root.TryGetComponent<Canvas>(out var canvas);
+                var canvas = root.GetComponentInChildren<Canvas>();
                 if (canvas != null)
                 {
+                    if (canvas.gameObject.layer != UILayer)
+                        continue;
                     uiRoot = canvas.transform;
                     break;
                 }
@@ -124,11 +129,12 @@ namespace TT.UI
             var root = TryGetRoot();
             if (root == null) return null ;
             var prefab = Resources.Load<GameObject>(path);
+            if (prefab == null) return null;
             var gameObject = Instantiate(prefab);
             var view = gameObject.GetComponent<View>();
             if (Sorting(view))
             {
-                gameObject.transform.SetParent(root);
+                gameObject.transform.SetParent(root, false);
                 return view;
             }
             return null;
